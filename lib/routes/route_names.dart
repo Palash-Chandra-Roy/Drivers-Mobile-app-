@@ -1,0 +1,40 @@
+class RouteNames {
+  RouteNames._();
+
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String otp = '/otp';
+  static const String accountNotRegistered = '/account-not-registered';
+  static const String mainNavigation = '/main';
+  static const String dashboard = '/dashboard';
+  static const String goOnline = '/go-online';
+  static const String orders = '/orders';
+  static const String orderDetails = '/order-details';
+  static const String newRequest = '/new-request';
+  static const String acceptOrder = '/accept-order';
+  static const String orderCompleted = '/order-completed';
+  static const String foodDelivery = '/food-delivery';
+  static const String pickupDetails = '/pickup-details';
+  static const String dropoffDetails = '/dropoff-details';
+  static const String deliverySuccess = '/delivery-success';
+  static const String scheduledOrders = '/scheduled-orders';
+  static const String scheduledOrderDetails = '/scheduled-order-details';
+  static const String restrictedOrder = '/restricted-order';
+  static const String ageVerification = '/age-verification';
+  static const String notifications = '/notifications';
+  static const String earnings = '/earnings';
+  static const String payout = '/payout';
+  static const String transactionHistory = '/transaction-history';
+  static const String incidents = '/incidents';
+  static const String reportIssue = '/report-issue';
+  static const String wrongMissingItems = '/wrong-missing-items';
+  static const String verifyHandover = '/verify-handover';
+  static const String safetyHelp = '/safety-help';
+  static const String dispatchChat = '/dispatch-chat';
+  static const String profile = '/profile';
+  static const String editProfile = '/edit-profile';
+  static const String vehicleInfo = '/vehicle-info';
+  static const String settings = '/settings';
+  static const String language = '/language';
+  static const String privacyPolicy = '/privacy-policy';
+}
