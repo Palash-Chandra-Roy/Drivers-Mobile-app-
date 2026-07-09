@@ -22,8 +22,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final _screens = const [
     DashboardScreen(),
     OrdersScreen(),
-    NotificationsScreen(),
     EarningsScreen(),
+    NotificationsScreen(),
     ProfileScreen(),
   ];
 

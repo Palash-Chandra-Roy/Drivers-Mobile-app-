@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:yjeek_driver/features/notifications/provider/notification_provider.dart';
 
 class BottomNavBar extends StatelessWidget {
   const BottomNavBar({
@@ -12,48 +10,74 @@ class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
+  static const Color _activeColor = Color(0xFF4CAF50);
+  static const Color _inactiveColor = Color(0xFF6B7C6B);
+
+  static const String _homeIcon = 'assets/images/Home-icon.png';
+  static const String _ordersIcon = 'assets/images/Order_icon.png';
+  static const String _earningsIcon = 'assets/images/Earnings_icon.png';
+  static const String _performanceIcon = 'assets/images/Performans_icon.png';
+  static const String _accountIcon = 'assets/images/Account_icon.png';
+
+  Widget _navIcon(String assetPath, bool isSelected) {
+    return Image.asset(
+      assetPath,
+      width: 24,
+      height: 24,
+      color: isSelected ? _activeColor : _inactiveColor,
+      colorBlendMode: BlendMode.srcIn,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final unread = context.watch<NotificationProvider>().unreadCount;
-
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: onTap,
-      items: [
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Home',
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE8EEE8), width: 1),
         ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.receipt_long_outlined),
-          activeIcon: Icon(Icons.receipt_long),
-          label: 'Orders',
-        ),
-        BottomNavigationBarItem(
-          icon: Badge(
-            isLabelVisible: unread > 0,
-            label: Text('$unread'),
-            child: const Icon(Icons.notifications_outlined),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: currentIndex,
+        onTap: onTap,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        selectedItemColor: _activeColor,
+        unselectedItemColor: _inactiveColor,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        items: [
+          BottomNavigationBarItem(
+            icon: _navIcon(_homeIcon, false),
+            activeIcon: _navIcon(_homeIcon, true),
+            label: 'Home',
           ),
-          activeIcon: Badge(
-            isLabelVisible: unread > 0,
-            label: Text('$unread'),
-            child: const Icon(Icons.notifications),
+          BottomNavigationBarItem(
+            icon: _navIcon(_ordersIcon, false),
+            activeIcon: _navIcon(_ordersIcon, true),
+            label: 'Orders',
           ),
-          label: 'Alerts',
-        ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.account_balance_wallet_outlined),
-          activeIcon: Icon(Icons.account_balance_wallet),
-          label: 'Earnings',
-        ),
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Account',
-        ),
-      ],
+          BottomNavigationBarItem(
+            icon: _navIcon(_earningsIcon, false),
+            activeIcon: _navIcon(_earningsIcon, true),
+            label: 'Earnings',
+          ),
+          BottomNavigationBarItem(
+            icon: _navIcon(_performanceIcon, false),
+            activeIcon: _navIcon(_performanceIcon, true),
+            label: 'Performance',
+          ),
+          BottomNavigationBarItem(
+            icon: _navIcon(_accountIcon, false),
+            activeIcon: _navIcon(_accountIcon, true),
+            label: 'Account',
+          ),
+        ],
+      ),
     );
   }
 }

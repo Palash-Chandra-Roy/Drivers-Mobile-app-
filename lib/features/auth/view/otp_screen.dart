@@ -119,7 +119,11 @@ class _OtpScreenState extends State<OtpScreen> {
       return;
     }
 
-    Navigator.pushReplacementNamed(context, RouteNames.mainNavigation);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      RouteNames.mainNavigation,
+      (route) => false,
+    );
   }
 
   void _onResendCode() {
@@ -332,7 +336,7 @@ class _OtpBox extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   static const Color _textDark = Color(0xFF1E1E1E);
-  static const Color _borderColor = Color(0xFFDDE8DD);
+  static const Color _borderColor = Color(0xFFD0DCD0);
   static const Color _activeGreen = Color(0xFF4CAF50);
 
   @override
@@ -340,39 +344,44 @@ class _OtpBox extends StatelessWidget {
     return SizedBox(
       width: width,
       height: 62,
-      child: DecoratedBox(
+      child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isActive ? _activeGreen : _borderColor,
-            width: isActive ? 2 : 1,
+            width: isActive ? 2.5 : 2,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
-        child: Center(
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.center,
-            maxLength: 1,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: _textDark,
-              height: 1,
-            ),
-            decoration: const InputDecoration(
-              counterText: '',
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.zero,
-              isDense: true,
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: onChanged,
+        alignment: Alignment.center,
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          textAlignVertical: TextAlignVertical.center,
+          maxLength: 1,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: _textDark,
+            height: 1,
           ),
+          decoration: const InputDecoration(
+            counterText: '',
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: EdgeInsets.zero,
+            isDense: true,
+            isCollapsed: true,
+          ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: onChanged,
         ),
       ),
     );
