@@ -4,8 +4,10 @@ import 'package:yjeek_driver/features/auth/view/account_not_registered_screen.da
 import 'package:yjeek_driver/features/auth/view/login_screen.dart';
 import 'package:yjeek_driver/features/auth/view/otp_screen.dart';
 import 'package:yjeek_driver/features/chat/view/dispatch_chat_screen.dart';
+import 'package:yjeek_driver/features/dashboard/view/cant_go_online_screen.dart';
 import 'package:yjeek_driver/features/dashboard/view/dashboard_screen.dart';
 import 'package:yjeek_driver/features/dashboard/view/go_online_screen.dart';
+import 'package:yjeek_driver/features/dashboard/view/update_required_screen.dart';
 import 'package:yjeek_driver/features/earnings/view/earnings_screen.dart';
 import 'package:yjeek_driver/features/earnings/view/payout_screen.dart';
 import 'package:yjeek_driver/features/earnings/view/transaction_history_screen.dart';
@@ -58,6 +60,10 @@ class AppRoutes {
         return _page(const DashboardScreen());
       case RouteNames.goOnline:
         return _page(const GoOnlineScreen());
+      case RouteNames.cantGoOnline:
+        return _page(const CantGoOnlineScreen());
+      case RouteNames.updateRequired:
+        return _page(const UpdateRequiredScreen());
       case RouteNames.orders:
         return _page(const OrdersScreen());
       case RouteNames.orderDetails:

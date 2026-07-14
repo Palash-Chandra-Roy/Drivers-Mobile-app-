@@ -8,6 +8,8 @@ class RouteNames {
   static const String mainNavigation = '/main';
   static const String dashboard = '/dashboard';
   static const String goOnline = '/go-online';
+  static const String cantGoOnline = '/cant-go-online';
+  static const String updateRequired = '/update-required';
   static const String orders = '/orders';
   static const String orderDetails = '/order-details';
   static const String newRequest = '/new-request';
