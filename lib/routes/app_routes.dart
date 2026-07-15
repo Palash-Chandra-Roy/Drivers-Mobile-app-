@@ -65,7 +65,13 @@ class AppRoutes {
       case RouteNames.updateRequired:
         return _page(const UpdateRequiredScreen());
       case RouteNames.orders:
-        return _page(const OrdersScreen());
+        final ordersArgs = settings.arguments;
+        final initialSegment = ordersArgs is int
+            ? ordersArgs
+            : (ordersArgs is Map && ordersArgs['segment'] == 'scheduled')
+                ? 1
+                : 0;
+        return _page(OrdersScreen(initialSegment: initialSegment));
       case RouteNames.orderDetails:
         final args = settings.arguments as String?;
         return _page(OrderDetailsScreen(orderId: args));

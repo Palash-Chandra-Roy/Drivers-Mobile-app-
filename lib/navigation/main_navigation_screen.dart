@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:yjeek_driver/core/constants/app_colors.dart';
-import 'package:yjeek_driver/features/notifications/provider/notification_provider.dart';
-import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/features/dashboard/view/dashboard_screen.dart';
 import 'package:yjeek_driver/features/earnings/view/earnings_screen.dart';
+import 'package:yjeek_driver/features/notifications/provider/notification_provider.dart';
 import 'package:yjeek_driver/features/notifications/view/notifications_screen.dart';
 import 'package:yjeek_driver/features/orders/view/orders_screen.dart';
 import 'package:yjeek_driver/features/profile/view/profile_screen.dart';
+import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
+import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -30,9 +31,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    OrdersNavSignal.pendingSegment.addListener(_onOrdersNavSignal);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationProvider>().loadNotifications();
     });
+  }
+
+  @override
+  void dispose() {
+    OrdersNavSignal.pendingSegment.removeListener(_onOrdersNavSignal);
+    super.dispose();
+  }
+
+  void _onOrdersNavSignal() {
+    if (OrdersNavSignal.pendingSegment.value == null) return;
+    if (!mounted) return;
+    setState(() => _currentIndex = 1); // Orders tab active
   }
 
   @override
@@ -41,6 +55,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
+        sizing: StackFit.expand,
         children: _screens,
       ),
       bottomNavigationBar: BottomNavBar(

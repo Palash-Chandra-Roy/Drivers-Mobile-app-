@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
+import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 /// Home UI matched to Figma references.
@@ -488,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: _onlineBg,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: () => Navigator.pushNamed(context, RouteNames.scheduledOrders),
+          onTap: () => OrdersNavSignal.openScheduled(),
           borderRadius: BorderRadius.circular(20),
           child: Container(
             height: 40,
@@ -778,7 +779,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: () => Navigator.pushNamed(context, RouteNames.scheduledOrders),
+          onTap: () => OrdersNavSignal.openScheduled(),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             height: 48,

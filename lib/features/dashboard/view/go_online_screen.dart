@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
+import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 class GoOnlineScreen extends StatelessWidget {
@@ -334,7 +335,7 @@ class GoOnlineScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: () =>
-              Navigator.pushNamed(context, RouteNames.scheduledOrders),
+              OrdersNavSignal.openScheduled(),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             height: 48,
