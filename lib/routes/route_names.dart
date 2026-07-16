@@ -13,6 +13,13 @@ class RouteNames {
   static const String orders = '/orders';
   static const String orderDetails = '/order-details';
   static const String newRequest = '/new-request';
+  static const String orderDeliveryNewRequest = '/order-delivery-new-request';
+  static const String goToRestaurant = '/go-to-restaurant';
+  static const String confirmPickup = '/confirm-pickup';
+  static const String rejectOrder = '/reject-order';
+  static const String deliverToCustomer = '/deliver-to-customer';
+  static const String completeDelivery = '/complete-delivery';
+  static const String deliveryCompleted = '/delivery-completed';
   static const String acceptOrder = '/accept-order';
   static const String orderCompleted = '/order-completed';
   static const String foodDelivery = '/food-delivery';
@@ -21,6 +28,14 @@ class RouteNames {
   static const String deliverySuccess = '/delivery-success';
   static const String scheduledOrders = '/scheduled-orders';
   static const String scheduledOrderDetails = '/scheduled-order-details';
+  static const String goToVendorScheduled = '/go-to-vendor-scheduled';
+  static const String scheduledPickup = '/scheduled-pickup';
+  static const String scheduledDeliverToCustomer =
+      '/scheduled-deliver-to-customer';
+  static const String scheduledCompleteDelivery =
+      '/scheduled-complete-delivery';
+  static const String scheduledDeliveryCompleted =
+      '/scheduled-delivery-completed';
   static const String restrictedOrder = '/restricted-order';
   static const String ageVerification = '/age-verification';
   static const String notifications = '/notifications';

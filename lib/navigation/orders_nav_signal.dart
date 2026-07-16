@@ -11,7 +11,19 @@ class OrdersNavSignal {
 
   static void openScheduled() => pendingSegment.value = 1;
 
+  static void openScheduledOnTrack() {
+    pendingSegment.value = 1;
+    pendingScheduledFilter.value = 2;
+  }
+
   static void openInstant() => pendingSegment.value = 0;
 
-  static void clear() => pendingSegment.value = null;
+  static void clear() {
+    pendingSegment.value = null;
+    pendingScheduledFilter.value = null;
+  }
+
+  /// When opening Scheduled tab, optionally select filter: 0 New, 2 On track, etc.
+  static final ValueNotifier<int?> pendingScheduledFilter =
+      ValueNotifier<int?>(null);
 }

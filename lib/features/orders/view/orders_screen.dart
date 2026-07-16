@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_driver/features/orders/view/deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/reject_scheduled_order_screen.dart';
 import 'package:yjeek_driver/features/orders/view/release_scheduled_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
@@ -48,6 +50,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       0; // 0 New, 1 Require confirmation, 2 On track, 3 Completed
   bool _showReleaseScreen = false;
   bool _showRejectScreen = false;
+  bool _showDeliverToCustomer = false;
   String _releaseOrderId = '#YJK-...52';
   String _rejectOrderId = '#YJK-...50';
 
@@ -79,17 +82,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
   ];
 
   static const _onTrackOrders = [
-    _OnTrackScheduledOrder(
-      id: '#YJK-...51',
-      route: 'Sharaf DG → Adliya',
-      window: 'Today · 6–8 PM',
-      statusLine: 'Picked up · on the way · ETA 6:35 PM',
+    ScheduledDeliveryOrder(
+      orderId: '#YJK-...52',
+      vendorName: 'Lulu Express',
+      vendorAddress: 'Seef, Bldg 428, Road 2825',
+      category: 'Electronics · Perfume',
+      customerName: 'Sara A.',
+      customerPhone: '+973 3300 0000',
+      customerAddress: 'Adliya, Bldg 23, Road 2825, Flat 82',
+      scheduledWindow: 'Today · 6–8 PM',
+      pickupDeadlineNotice: 'Pick up by 5:45 PM to stay on schedule.',
+      distance: '1.4 km',
+      eta: '~8 min',
+      items: [
+        ScheduledOrderItem(quantity: '1×', name: 'Wireless earbuds'),
+        ScheduledOrderItem(quantity: '1×', name: 'Perfume 50 ml'),
+        ScheduledOrderItem(quantity: '1×', name: 'Phone case'),
+      ],
+      isFragileHighValue: true,
+      paymentType: ScheduledPaymentType.prepaid,
+      earnings: '2.600',
+      tip: '0.300',
+      totalDeliveryTime: '22 min',
+      deliveryDistance: '4.2 km',
+      deliveryEta: '~18 min',
+      orderTypeLabel: 'Scheduled · Normal',
+      cardRouteLabel: 'Lulu Express → Adliya',
+      cardStatusLine: 'Heading to vendor · pickup by 5:45 PM',
     ),
-    _OnTrackScheduledOrder(
-      id: '#YJK-...48',
-      route: 'VEERA → Juffair',
-      window: 'Today · 7–9 PM',
-      statusLine: 'Heading to vendor · pickup by 7:10 PM',
+    ScheduledDeliveryOrder(
+      orderId: '#YJK-...48',
+      vendorName: 'VEERA',
+      vendorAddress: 'Juffair, Bldg 120, Road 4012',
+      category: 'Fashion · Accessories',
+      customerName: 'Ahmed K.',
+      customerPhone: '+973 3900 1122',
+      customerAddress: 'Juffair, Bldg 45, Road 3801, Flat 9',
+      scheduledWindow: 'Today · 7–9 PM',
+      pickupDeadlineNotice: 'Pick up by 7:10 PM to stay on schedule.',
+      distance: '2.1 km',
+      eta: '~12 min',
+      items: [
+        ScheduledOrderItem(quantity: '1×', name: 'Leather wallet'),
+        ScheduledOrderItem(quantity: '2×', name: 'Sunglasses'),
+      ],
+      isFragileHighValue: false,
+      paymentType: ScheduledPaymentType.cash,
+      cashAmount: 'BHD 12.500',
+      earnings: '2.100',
+      tip: '0.200',
+      totalDeliveryTime: '28 min',
+      deliveryDistance: '5.1 km',
+      deliveryEta: '~22 min',
+      orderTypeLabel: 'Scheduled · Normal',
+      cardRouteLabel: 'VEERA → Juffair',
+      cardStatusLine: 'Heading to vendor · pickup by 7:10 PM',
     ),
   ];
 
@@ -149,6 +196,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       _segment = 1;
       _showRejectScreen = false;
       _showReleaseScreen = false;
+      _showDeliverToCustomer = false;
     });
   }
 
@@ -157,6 +205,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       _rejectOrderId = orderId;
       _showRejectScreen = true;
       _showReleaseScreen = false;
+      _showDeliverToCustomer = false;
       _scheduledFilter = 0;
       _segment = 1;
     });
@@ -184,6 +233,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       _releaseOrderId = orderId;
       _showReleaseScreen = true;
       _showRejectScreen = false;
+      _showDeliverToCustomer = false;
       _scheduledFilter = 1;
       _segment = 1;
     });
@@ -202,6 +252,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
   }
 
+  void _openDeliverToCustomer() {
+    setState(() {
+      _showDeliverToCustomer = true;
+      _showRejectScreen = false;
+      _showReleaseScreen = false;
+      _segment = 0; // Instant
+    });
+  }
+
+  void _closeDeliverToCustomer() {
+    setState(() {
+      _showDeliverToCustomer = false;
+      _segment = 0; // Back to Instant
+    });
+  }
+
   @override
   void dispose() {
     OrdersNavSignal.pendingSegment.removeListener(_onNavSignal);
@@ -213,13 +279,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void _consumeNavSignal() {
     final pending = OrdersNavSignal.pendingSegment.value;
     if (pending == null || !mounted) return;
+    final scheduledFilter = OrdersNavSignal.pendingScheduledFilter.value;
     setState(() {
       _segment = pending.clamp(0, 1);
-      if (_segment == 1) _scheduledFilter = 0;
+      if (_segment == 1) {
+        _scheduledFilter = scheduledFilter ?? 0;
+      }
       _showRejectScreen = false;
       _showReleaseScreen = false;
+      _showDeliverToCustomer = false;
     });
     OrdersNavSignal.clear();
+  }
+
+  void _openScheduledTrack(ScheduledDeliveryOrder order) {
+    Navigator.pushNamed(
+      context,
+      RouteNames.goToVendorScheduled,
+      arguments: order,
+    );
   }
 
   void selectSegment(int index) {
@@ -228,6 +306,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showDeliverToCustomer) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: DeliverToCustomerScreen(
+          onBack: _closeDeliverToCustomer,
+        ),
+      );
+    }
+
     if (_showRejectScreen) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
@@ -284,13 +371,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             Expanded(
               child: _segment == 0
                   ? _InstantOrdersBody(
-                      onContinue: () {
-                        Navigator.pushNamed(
-                          context,
-                          RouteNames.orderDetails,
-                          arguments: 'YJK-...43',
-                        );
-                      },
+                      onContinue: _openDeliverToCustomer,
                     )
                   : _ScheduledOrdersBody(
                       filters: _filters,
@@ -300,6 +381,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       newOrders: _newOrdersList,
                       confirmOrders: _confirmOrdersList,
                       onTrackOrders: _onTrackOrders,
+                      onTrackOrderTap: _openScheduledTrack,
                       completedOrders: _completedOrders,
                       onDoubleConfirm: _onDoubleConfirm,
                       onRelease: _openRelease,
@@ -400,20 +482,6 @@ class _ConfirmScheduledOrder {
   final String respondIn;
 }
 
-class _OnTrackScheduledOrder {
-  const _OnTrackScheduledOrder({
-    required this.id,
-    required this.route,
-    required this.window,
-    required this.statusLine,
-  });
-
-  final String id;
-  final String route;
-  final String window;
-  final String statusLine;
-}
-
 class _CompletedScheduledOrder {
   const _CompletedScheduledOrder({
     required this.id,
@@ -436,6 +504,7 @@ class _ScheduledOrdersBody extends StatelessWidget {
     required this.newOrders,
     required this.confirmOrders,
     required this.onTrackOrders,
+    required this.onTrackOrderTap,
     required this.completedOrders,
     required this.onDoubleConfirm,
     required this.onRelease,
@@ -448,7 +517,8 @@ class _ScheduledOrdersBody extends StatelessWidget {
   final ValueChanged<int> onFilterChanged;
   final List<_NewScheduledOrder> newOrders;
   final List<_ConfirmScheduledOrder> confirmOrders;
-  final List<_OnTrackScheduledOrder> onTrackOrders;
+  final List<ScheduledDeliveryOrder> onTrackOrders;
+  final ValueChanged<ScheduledDeliveryOrder> onTrackOrderTap;
   final List<_CompletedScheduledOrder> completedOrders;
   final VoidCallback onDoubleConfirm;
   final ValueChanged<String> onRelease;
@@ -533,8 +603,10 @@ class _ScheduledOrdersBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           itemCount: onTrackOrders.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) =>
-              _OnTrackCard(data: onTrackOrders[index]),
+          itemBuilder: (context, index) => _OnTrackCard(
+            data: onTrackOrders[index],
+            onTap: () => onTrackOrderTap(onTrackOrders[index]),
+          ),
         );
       case 3:
         return ListView.separated(
@@ -870,9 +942,13 @@ class _RequireConfirmCard extends StatelessWidget {
 }
 
 class _OnTrackCard extends StatelessWidget {
-  const _OnTrackCard({required this.data});
+  const _OnTrackCard({
+    required this.data,
+    required this.onTap,
+  });
 
-  final _OnTrackScheduledOrder data;
+  final ScheduledDeliveryOrder data;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -891,7 +967,7 @@ class _OnTrackCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  data.id,
+                  data.orderId,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -908,7 +984,7 @@ class _OnTrackCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            data.route,
+            data.cardRouteLabel,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -930,7 +1006,7 @@ class _OnTrackCard extends StatelessWidget {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  data.window,
+                  data.scheduledWindow,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -942,7 +1018,7 @@ class _OnTrackCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            data.statusLine,
+            data.cardStatusLine,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w400,
@@ -953,7 +1029,7 @@ class _OnTrackCard extends StatelessWidget {
           Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () {},
+              onTap: onTap,
               borderRadius: BorderRadius.circular(8),
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 2),

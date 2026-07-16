@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 class _NewRequestScreenScale {
@@ -107,7 +108,7 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
                         onAccept: () {
                           Navigator.pushNamed(
                             context,
-                            RouteNames.cantGoOnline,
+                            RouteNames.orderDeliveryNewRequest,
                           );
                         },
                       ),
@@ -122,12 +123,20 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
     );
   }
 
+  void _openOrdersScheduled(BuildContext context) {
+    OrdersNavSignal.openScheduled();
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      RouteNames.mainNavigation,
+      (route) => false,
+    );
+  }
+
   Widget _buildScheduledCard(BuildContext context) {
     return Material(
       color: _white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, RouteNames.scheduledOrders),
+        onTap: () => _openOrdersScheduled(context),
         borderRadius: BorderRadius.circular(14),
         child: Container(
           height: double.infinity,

@@ -22,7 +22,20 @@ import 'package:yjeek_driver/features/incidents_safety/view/verify_handover_scre
 import 'package:yjeek_driver/features/incidents_safety/view/wrong_missing_items_screen.dart';
 import 'package:yjeek_driver/features/notifications/view/notifications_screen.dart';
 import 'package:yjeek_driver/features/orders/view/accept_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/complete_delivery_screen.dart';
+import 'package:yjeek_driver/features/orders/view/delivery_completed_screen.dart';
+import 'package:yjeek_driver/features/orders/view/confirm_pickup_screen.dart';
+import 'package:yjeek_driver/features/orders/view/deliver_to_customer_screen.dart';
+import 'package:yjeek_driver/features/orders/view/go_to_restaurant_screen.dart';
+import 'package:yjeek_driver/features/orders/view/go_to_vendor_scheduled_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_complete_delivery_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_deliver_to_customer_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_delivery_completed_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_pickup_screen.dart';
 import 'package:yjeek_driver/features/orders/view/new_request_screen.dart';
+import 'package:yjeek_driver/features/orders/view/reject_scheduled_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/order_delivery_new_request_screen.dart';
 import 'package:yjeek_driver/features/orders/view/order_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/order_details_screen.dart';
 import 'package:yjeek_driver/features/orders/view/orders_screen.dart';
@@ -77,6 +90,105 @@ class AppRoutes {
         return _page(OrderDetailsScreen(orderId: args));
       case RouteNames.newRequest:
         return _page(const NewRequestScreen());
+      case RouteNames.orderDeliveryNewRequest:
+        return _page(const OrderDeliveryNewRequestScreen());
+      case RouteNames.goToRestaurant:
+        final goArgs = settings.arguments;
+        final restaurantArgs = goArgs is GoToRestaurantArgs
+            ? goArgs
+            : GoToRestaurantArgs(
+                orderId: goArgs is Map
+                    ? '${goArgs['orderId'] ?? '#YJK-...41'}'
+                    : '#YJK-...41',
+                restaurantName: goArgs is Map
+                    ? '${goArgs['restaurantName'] ?? 'The Green Kitchen'}'
+                    : 'The Green Kitchen',
+                pickupLocation: goArgs is Map
+                    ? '${goArgs['pickupLocation'] ?? 'Seef District'}'
+                    : 'Seef District',
+                distance: goArgs is Map
+                    ? '${goArgs['distance'] ?? '1.1 km'}'
+                    : '1.1 km',
+                estimatedTime: goArgs is Map
+                    ? '${goArgs['estimatedTime'] ?? '~5 min'}'
+                    : '~5 min',
+              );
+        return MaterialPageRoute(
+          builder: (context) => GoToRestaurantScreen(
+            args: restaurantArgs,
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
+      case RouteNames.confirmPickup:
+        final confirmArgs = settings.arguments;
+        final pickupArgs = confirmArgs is ConfirmPickupArgs
+            ? confirmArgs
+            : ConfirmPickupArgs(
+                orderId: confirmArgs is Map
+                    ? '${confirmArgs['orderId'] ?? '#YJK-...41'}'
+                    : '#YJK-...41',
+                restaurantName: confirmArgs is Map
+                    ? '${confirmArgs['restaurantName'] ?? 'The Green Kitchen'}'
+                    : 'The Green Kitchen',
+              );
+        return MaterialPageRoute(
+          builder: (context) => ConfirmPickupScreen(
+            args: pickupArgs,
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
+      case RouteNames.rejectOrder:
+        final rejectOrderId = settings.arguments as String? ?? '#YJK-...41';
+        return MaterialPageRoute(
+          builder: (context) => RejectScheduledOrderScreen(
+            orderId: rejectOrderId,
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            onKeepOrder: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            onSubmitDecline: (_, __) {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
+      case RouteNames.deliverToCustomer:
+        return MaterialPageRoute(
+          builder: (context) => DeliverToCustomerScreen(
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
+      case RouteNames.completeDelivery:
+        return MaterialPageRoute(
+          builder: (context) => CompleteDeliveryScreen(
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
+      case RouteNames.deliveryCompleted:
+        return _page(const DeliveryCompletedScreen());
       case RouteNames.acceptOrder:
         return _page(const AcceptOrderScreen());
       case RouteNames.orderCompleted:
@@ -94,6 +206,31 @@ class AppRoutes {
         return _page(const ScheduledOrdersScreen());
       case RouteNames.scheduledOrderDetails:
         return _page(const ScheduledOrderDetailsScreen());
+      case RouteNames.goToVendorScheduled:
+        return _scheduledOrderPage(
+          settings,
+          (order) => GoToVendorScheduledScreen(order: order),
+        );
+      case RouteNames.scheduledPickup:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledPickupScreen(order: order),
+        );
+      case RouteNames.scheduledDeliverToCustomer:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledDeliverToCustomerScreen(order: order),
+        );
+      case RouteNames.scheduledCompleteDelivery:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledCompleteDeliveryScreen(order: order),
+        );
+      case RouteNames.scheduledDeliveryCompleted:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledDeliveryCompletedScreen(order: order),
+        );
       case RouteNames.restrictedOrder:
         return _page(const RestrictedOrderScreen());
       case RouteNames.ageVerification:
@@ -138,6 +275,20 @@ class AppRoutes {
   static MaterialPageRoute<dynamic> _page(Widget child) {
     return MaterialPageRoute(builder: (_) => child);
   }
+
+  static MaterialPageRoute<dynamic> _scheduledOrderPage(
+    RouteSettings settings,
+    Widget Function(ScheduledDeliveryOrder order) builder,
+  ) {
+    final order = settings.arguments;
+    if (order is! ScheduledDeliveryOrder) {
+      return _page(const UnknownRouteScreen());
+    }
+    return MaterialPageRoute(
+      settings: settings,
+      builder: (_) => builder(order),
+    );
+  }
 }
 
 class UnknownRouteScreen extends StatelessWidget {
@@ -151,7 +302,8 @@ class UnknownRouteScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.textLight.withValues(alpha: 0.5)),
+            Icon(Icons.error_outline,
+                size: 64, color: AppColors.textLight.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             const Text('The page you are looking for does not exist.'),
             const SizedBox(height: 24),
