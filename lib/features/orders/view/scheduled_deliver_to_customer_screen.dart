@@ -14,14 +14,13 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
   final ScheduledDeliveryOrder order;
 
   static const Color _headerGreen = Color(0xFF4DB04F);
-  static const Color _screenBg = Color(0xFFFFFFFF);
+  static const Color _screenBg = Color(0xFFF4F8F2);
   static const Color _textPrimary = Color(0xFF1A1A1A);
-  static const Color _textMuted = Color(0xFF757575);
+  static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
-  static const Color _iconGreenBg = Color(0xFFE8F5E9);
-  static const Color _iconGreen = Color(0xFF2E7D32);
   static const Color _prepaidBg = Color(0xFFE8F5E9);
   static const Color _prepaidHeading = Color(0xFF2E7D32);
+  static const Color _reportText = Color(0xFFCFE3D5);
   static const Color _codBg = Color(0xFFFFF3E8);
   static const Color _codOrange = Color(0xFFE67E22);
   static const Color _codOrangeDark = Color(0xFFD35400);
@@ -53,7 +52,7 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                 color: Colors.white,
                 child: SizedBox(height: topInset),
               ),
-              _buildHeader(),
+              _buildHeader(context),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
@@ -68,7 +67,7 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildCustomerCard(),
+                          _buildDropOffCard(),
                           SizedBox(height: 12.sh),
                           order.isPrepaid
                               ? _buildPrepaidCard()
@@ -91,20 +90,29 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
       color: _headerGreen,
-      padding: EdgeInsets.fromLTRB(16.sw, 14.sh, 16.sw, 14.sh),
+      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 12.sw, 10.sh),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: 2.sh),
-            child: Icon(
-              Icons.near_me_outlined,
-              color: Colors.white.withValues(alpha: 0.95),
-              size: 22.ssp,
+          Material(
+            color: Colors.white.withValues(alpha: 0.22),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 36.sw,
+                height: 36.sw,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white.withValues(alpha: 0.95),
+                  size: 18.ssp,
+                ),
+              ),
             ),
           ),
           SizedBox(width: 10.sw),
@@ -115,7 +123,7 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                 Text(
                   'Deliver to customer',
                   style: TextStyle(
-                    fontSize: 17.ssp,
+                    fontSize: 15.ssp,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     height: 1.2,
@@ -125,24 +133,39 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                 Text(
                   order.deliveryDistanceEtaLabel,
                   style: TextStyle(
-                    fontSize: 13.ssp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFFE8F5E9),
+                    fontSize: 12.ssp,
+                    fontWeight: FontWeight.w500,
+                    color: _reportText,
                     height: 1.2,
                   ),
                 ),
               ],
             ),
           ),
-          Padding(
-            padding: EdgeInsets.only(top: 2.sh),
-            child: Text(
-              'Drop-off',
-              style: TextStyle(
-                fontSize: 13.ssp,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.flag_outlined,
+                  color: _reportText,
+                  size: 13.ssp,
+                ),
+                SizedBox(width: 4.sw),
+                Text(
+                  'Report',
+                  style: TextStyle(
+                    fontSize: 11.ssp,
+                    fontWeight: FontWeight.w600,
+                    color: _reportText,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -150,86 +173,67 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomerCard() {
+  Widget _buildDropOffCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(12.sw, 12.sh, 12.sw, 12.sh),
+      padding: EdgeInsets.fromLTRB(14.sw, 14.sh, 14.sw, 14.sh),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _cardBorder),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40.sw,
-            height: 40.sw,
-            decoration: BoxDecoration(
-              color: _iconGreenBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.person_rounded, color: _iconGreen, size: 22.ssp),
-          ),
-          SizedBox(width: 10.sw),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  order.customerName,
-                  style: TextStyle(
-                    fontSize: 15.ssp,
-                    fontWeight: FontWeight.w700,
-                    color: _textPrimary,
-                    height: 1.25,
-                  ),
-                ),
-                SizedBox(height: 3.sh),
-                Text(
-                  order.customerPhone,
-                  style: TextStyle(
-                    fontSize: 13.ssp,
-                    fontWeight: FontWeight.w400,
-                    color: _textMuted,
-                    height: 1.3,
-                  ),
-                ),
-                SizedBox(height: 2.sh),
-                Text(
-                  order.customerAddress,
-                  style: TextStyle(
-                    fontSize: 13.ssp,
-                    fontWeight: FontWeight.w400,
-                    color: _textMuted,
-                    height: 1.3,
-                  ),
-                ),
-                SizedBox(height: 2.sh),
-                Text(
-                  order.scheduledWindow,
-                  style: TextStyle(
-                    fontSize: 13.ssp,
-                    fontWeight: FontWeight.w500,
-                    color: _textMuted,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+          Text(
+            'Drop-off',
+            style: TextStyle(
+              fontSize: 14.ssp,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+              height: 1.25,
             ),
           ),
-          SizedBox(width: 8.sw),
-          Container(
-            width: 40.sw,
-            height: 40.sw,
-            decoration: BoxDecoration(
-              color: _iconGreenBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.phone_rounded, color: _iconGreen, size: 20.ssp),
-          ),
+          SizedBox(height: 14.sh),
+          _buildDetailRow('Customer', order.customerName),
+          SizedBox(height: 10.sh),
+          _buildDetailRow('Phone', order.customerPhone),
+          SizedBox(height: 10.sh),
+          _buildDetailRow('Address', order.customerAddress),
+          SizedBox(height: 10.sh),
+          _buildDetailRow('Window', order.scheduledWindow),
         ],
       ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.ssp,
+            fontWeight: FontWeight.w400,
+            color: _textMuted,
+            height: 1.3,
+          ),
+        ),
+        SizedBox(width: 12.sw),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 13.ssp,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -244,7 +248,7 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check_circle_outline, color: _prepaidHeading, size: 22.ssp),
+          Icon(Icons.check_box_outlined, color: _prepaidHeading, size: 20.ssp),
           SizedBox(width: 10.sw),
           Expanded(
             child: Text(

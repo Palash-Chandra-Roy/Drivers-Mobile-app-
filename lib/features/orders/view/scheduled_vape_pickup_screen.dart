@@ -5,9 +5,9 @@ import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart'
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
-/// Local UI-only “Complete delivery” screen for scheduled On Track deliveries.
-class ScheduledCompleteDeliveryScreen extends StatefulWidget {
-  const ScheduledCompleteDeliveryScreen({
+/// Pickup · scheduled screen for age-restricted Vape scheduled deliveries.
+class ScheduledVapePickupScreen extends StatefulWidget {
+  const ScheduledVapePickupScreen({
     super.key,
     required this.order,
   });
@@ -15,32 +15,34 @@ class ScheduledCompleteDeliveryScreen extends StatefulWidget {
   final ScheduledDeliveryOrder order;
 
   @override
-  State<ScheduledCompleteDeliveryScreen> createState() =>
-      _ScheduledCompleteDeliveryScreenState();
+  State<ScheduledVapePickupScreen> createState() =>
+      _ScheduledVapePickupScreenState();
 }
 
-class _ScheduledCompleteDeliveryScreenState
-    extends State<ScheduledCompleteDeliveryScreen> {
+class _ScheduledVapePickupScreenState extends State<ScheduledVapePickupScreen> {
   static const Color _headerGreen = Color(0xFF4DB04F);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _screenBg = Color(0xFFF4F8F2);
   static const Color _textPrimary = Color(0xFF1A1A1A);
   static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
-  static const Color _reportText = Color(0xFFCFE3D5);
+  static const Color _subtitleText = Color(0xFFCFE3D5);
   static const Color _uploadBg = Color(0xFFF5F5F5);
   static const Color _uploadBorder = Color(0xFFBDBDBD);
 
-  bool _hasProofPhoto = false;
-  Uint8List? _proofPhotoBytes;
+  static const List<String> _pickupChecks = [
+    'Items match the order',
+    'Sealed in tamper-evident bag',
+    'Age-restricted flag is ON',
+  ];
+
+  bool _hasPickupPhoto = false;
+  Uint8List? _pickupPhotoBytes;
   final ImagePicker _imagePicker = ImagePicker();
 
   ScheduledDeliveryOrder get order => widget.order;
 
-  String get _paymentDisplay =>
-      order.paymentSummary.replaceAll('—', '·').replaceAll('-', '·');
-
-  Future<void> _selectProofPhoto() async {
+  Future<void> _selectPickupPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: _white,
@@ -81,8 +83,8 @@ class _ScheduledCompleteDeliveryScreenState
       if (!mounted) return;
 
       setState(() {
-        _proofPhotoBytes = bytes;
-        _hasProofPhoto = true;
+        _pickupPhotoBytes = bytes;
+        _hasPickupPhoto = true;
       });
     } on PlatformException {
       if (!mounted) return;
@@ -101,9 +103,13 @@ class _ScheduledCompleteDeliveryScreenState
     }
   }
 
-  void _completeDelivery() {
-    if (!_hasProofPhoto) return;
-    Navigator.pushNamed(context, RouteNames.deliveryCompleted);
+  void _confirmPickup() {
+    if (!_hasPickupPhoto) return;
+    Navigator.pushNamed(
+      context,
+      RouteNames.scheduledVapeDeliverToCustomer,
+      arguments: order,
+    );
   }
 
   @override
@@ -131,7 +137,7 @@ class _ScheduledCompleteDeliveryScreenState
                 color: Colors.white,
                 child: SizedBox(height: topInset),
               ),
-              _buildHeader(context),
+              _buildHeader(),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
@@ -141,11 +147,11 @@ class _ScheduledCompleteDeliveryScreenState
                     16.sh + bottomInset,
                   ),
                   children: [
-                    _buildHandoverCard(),
+                    _buildPickupChecksCard(),
                     SizedBox(height: 14.sh),
                     _buildUploadArea(),
                     SizedBox(height: 20.sh),
-                    _buildCompleteButton(),
+                    _buildConfirmButton(),
                   ],
                 ),
               ),
@@ -157,11 +163,11 @@ class _ScheduledCompleteDeliveryScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader() {
     return Container(
       width: double.infinity,
       color: _headerGreen,
-      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 12.sw, 10.sh),
+      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 16.sw, 10.sh),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -188,9 +194,7 @@ class _ScheduledCompleteDeliveryScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Complete delivery',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Pickup · scheduled',
                   style: TextStyle(
                     fontSize: 15.ssp,
                     fontWeight: FontWeight.w700,
@@ -200,40 +204,14 @@ class _ScheduledCompleteDeliveryScreenState
                 ),
                 SizedBox(height: 3.sh),
                 Text(
-                  '${order.customerName} · ${order.orderId}',
+                  '${order.vendorName} · ${order.orderId}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12.ssp,
                     fontWeight: FontWeight.w500,
-                    color: _reportText,
+                    color: _subtitleText,
                     height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  color: _reportText,
-                  size: 13.ssp,
-                ),
-                SizedBox(width: 4.sw),
-                Text(
-                  'Report',
-                  style: TextStyle(
-                    fontSize: 11.ssp,
-                    fontWeight: FontWeight.w600,
-                    color: _reportText,
                   ),
                 ),
               ],
@@ -244,7 +222,7 @@ class _ScheduledCompleteDeliveryScreenState
     );
   }
 
-  Widget _buildHandoverCard() {
+  Widget _buildPickupChecksCard() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.sw, 14.sh, 14.sw, 14.sh),
@@ -257,7 +235,7 @@ class _ScheduledCompleteDeliveryScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Handover',
+            'Pickup checks',
             style: TextStyle(
               fontSize: 14.ssp,
               fontWeight: FontWeight.w700,
@@ -266,35 +244,35 @@ class _ScheduledCompleteDeliveryScreenState
             ),
           ),
           SizedBox(height: 14.sh),
-          _buildDetailRow('Items', '${order.itemCount} items'),
-          SizedBox(height: 10.sh),
-          _buildDetailRow('Payment', _paymentDisplay),
+          for (var i = 0; i < _pickupChecks.length; i++) ...[
+            _buildCheckedRow(_pickupChecks[i]),
+            if (i < _pickupChecks.length - 1) SizedBox(height: 12.sh),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildCheckedRow(String label) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13.ssp,
-            fontWeight: FontWeight.w400,
-            color: _textMuted,
-            height: 1.3,
+        Container(
+          width: 22.ssp,
+          height: 22.ssp,
+          decoration: const BoxDecoration(
+            color: _headerGreen,
+            shape: BoxShape.circle,
           ),
+          child: Icon(Icons.check, color: _white, size: 14.ssp),
         ),
-        SizedBox(width: 12.sw),
+        SizedBox(width: 10.sw),
         Expanded(
           child: Text(
-            value,
-            textAlign: TextAlign.right,
+            label,
             style: TextStyle(
               fontSize: 13.ssp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: _textPrimary,
               height: 1.3,
             ),
@@ -305,12 +283,12 @@ class _ScheduledCompleteDeliveryScreenState
   }
 
   Widget _buildUploadArea() {
-    final hasImage = _hasProofPhoto && _proofPhotoBytes != null;
+    final hasImage = _hasPickupPhoto && _pickupPhotoBytes != null;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _selectProofPhoto,
+        onTap: _selectPickupPhoto,
         borderRadius: BorderRadius.circular(14),
         child: CustomPaint(
           painter: ScheduledDashedBorderPainter(
@@ -328,7 +306,7 @@ class _ScheduledCompleteDeliveryScreenState
                       fit: StackFit.expand,
                       children: [
                         Image.memory(
-                          _proofPhotoBytes!,
+                          _pickupPhotoBytes!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               _buildUploadPlaceholder(),
@@ -380,7 +358,7 @@ class _ScheduledCompleteDeliveryScreenState
             ),
             SizedBox(height: 8.sh),
             Text(
-              'Add proof of delivery',
+              'Add pickup photo',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14.ssp,
@@ -406,9 +384,9 @@ class _ScheduledCompleteDeliveryScreenState
     );
   }
 
-  Widget _buildCompleteButton() {
+  Widget _buildConfirmButton() {
     return Opacity(
-      opacity: _hasProofPhoto ? 1 : 0.45,
+      opacity: _hasPickupPhoto ? 1 : 0.45,
       child: SizedBox(
         width: double.infinity,
         height: 52.sh,
@@ -416,11 +394,11 @@ class _ScheduledCompleteDeliveryScreenState
           color: _headerGreen,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            onTap: _hasProofPhoto ? _completeDelivery : null,
+            onTap: _hasPickupPhoto ? _confirmPickup : null,
             borderRadius: BorderRadius.circular(14),
             child: Center(
               child: Text(
-                'Complete delivery',
+                'Confirm pickup & start delivery',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

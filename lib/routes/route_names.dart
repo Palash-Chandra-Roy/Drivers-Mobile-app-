@@ -30,14 +30,23 @@ class RouteNames {
   static const String scheduledOrderDetails = '/scheduled-order-details';
   static const String goToVendorScheduled = '/go-to-vendor-scheduled';
   static const String scheduledPickup = '/scheduled-pickup';
+  static const String scheduledVapePickup = '/scheduled-vape-pickup';
   static const String scheduledDeliverToCustomer =
       '/scheduled-deliver-to-customer';
+  static const String scheduledVapeDeliverToCustomer =
+      '/scheduled-vape-deliver-to-customer';
   static const String scheduledCompleteDelivery =
       '/scheduled-complete-delivery';
   static const String scheduledDeliveryCompleted =
       '/scheduled-delivery-completed';
+  static const String scheduledVapeDeliveryCompleted =
+      '/scheduled-vape-delivery-completed';
+  static const String scheduledCompletedOrderDetail =
+      '/scheduled-completed-order-detail';
   static const String restrictedOrder = '/restricted-order';
   static const String ageVerification = '/age-verification';
+  static const String ageRestrictedDelivery = '/age-restricted-delivery';
+  static const String returnTheOrder = '/return-the-order';
   static const String notifications = '/notifications';
   static const String earnings = '/earnings';
   static const String payout = '/payout';

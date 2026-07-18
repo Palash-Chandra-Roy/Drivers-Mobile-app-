@@ -31,8 +31,15 @@ import 'package:yjeek_driver/features/orders/view/go_to_vendor_scheduled_screen.
 import 'package:yjeek_driver/features/orders/view/scheduled_complete_delivery_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_completed_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_pickup_screen.dart';
+import 'package:yjeek_driver/features/orders/view/age_restricted_delivery_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_vape_deliver_to_customer_screen.dart';
+import 'package:yjeek_driver/features/orders/view/return_the_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_vape_delivery_completed_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_vape_pickup_screen.dart';
 import 'package:yjeek_driver/features/orders/view/new_request_screen.dart';
 import 'package:yjeek_driver/features/orders/view/reject_scheduled_order_screen.dart';
 import 'package:yjeek_driver/features/orders/view/order_delivery_new_request_screen.dart';
@@ -216,6 +223,26 @@ class AppRoutes {
           settings,
           (order) => ScheduledPickupScreen(order: order),
         );
+      case RouteNames.scheduledVapePickup:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledVapePickupScreen(order: order),
+        );
+      case RouteNames.scheduledVapeDeliverToCustomer:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledVapeDeliverToCustomerScreen(order: order),
+        );
+      case RouteNames.scheduledVapeDeliveryCompleted:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ScheduledVapeDeliveryCompletedScreen(order: order),
+        );
+      case RouteNames.returnTheOrder:
+        return _scheduledOrderPage(
+          settings,
+          (order) => ReturnTheOrderScreen(order: order),
+        );
       case RouteNames.scheduledDeliverToCustomer:
         return _scheduledOrderPage(
           settings,
@@ -231,10 +258,17 @@ class AppRoutes {
           settings,
           (order) => ScheduledDeliveryCompletedScreen(order: order),
         );
+      case RouteNames.scheduledCompletedOrderDetail:
+        return _scheduledCompletedOrderDetailPage(settings);
       case RouteNames.restrictedOrder:
         return _page(const RestrictedOrderScreen());
       case RouteNames.ageVerification:
         return _page(const AgeVerificationScreen());
+      case RouteNames.ageRestrictedDelivery:
+        return _scheduledOrderPage(
+          settings,
+          (order) => AgeRestrictedDeliveryScreen(order: order),
+        );
       case RouteNames.notifications:
         return _page(const NotificationsScreen());
       case RouteNames.earnings:
@@ -287,6 +321,19 @@ class AppRoutes {
     return MaterialPageRoute(
       settings: settings,
       builder: (_) => builder(order),
+    );
+  }
+
+  static MaterialPageRoute<dynamic> _scheduledCompletedOrderDetailPage(
+    RouteSettings settings,
+  ) {
+    final order = settings.arguments;
+    if (order is! ScheduledCompletedOrderDetail) {
+      return _page(const UnknownRouteScreen());
+    }
+    return MaterialPageRoute(
+      settings: settings,
+      builder: (_) => ScheduledCompletedOrderDetailScreen(order: order),
     );
   }
 }

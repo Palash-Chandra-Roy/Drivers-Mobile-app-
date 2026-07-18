@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:yjeek_driver/features/orders/view/delivery_completed_screen.dart';
-import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
-import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 class _CompleteDeliveryScale {
@@ -45,67 +42,26 @@ class CompleteDeliveryScreen extends StatefulWidget {
 }
 
 class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
+  static const Color _headerGreen = Color(0xFF4DB04F);
   static const Color _white = Color(0xFFFFFFFF);
-  static const Color _screenBg = Color(0xFFFFFFFF);
+  static const Color _screenBg = Color(0xFFF4F8F2);
   static const Color _textPrimary = Color(0xFF1A1A1A);
-  static const Color _textMuted = Color(0xFF6B7B6E);
+  static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
-  static const Color _iconGreenBg = Color(0xFFE8F5E9);
-  static const Color _iconGreen = Color(0xFF2E7D32);
-  static const Color _checkGreen = Color(0xFF4CAF50);
-  static const Color _cashCardBg = Color(0xFFFFF0DE);
-  static const Color _cashHeading = Color(0xFF9A6A1E);
-  static const Color _cashAmount = Color(0xFFE08A1E);
-  static const Color _cashRowBorder = Color(0xFFE8D5C4);
+  static const Color _reportText = Color(0xFFCFE3D5);
   static const Color _uploadBg = Color(0xFFF5F5F5);
   static const Color _uploadBorder = Color(0xFFBDBDBD);
-  static const Color _uploadIcon = Color(0xFF9E9E9E);
-  static const Color _confirmGreen = Color(0xFF4CAF50);
-  static const Color _radioEmpty = Color(0xFFBDBDBD);
-
-  static const String _cashIconAsset =
-      'assets/images/cash_on_delivery_icon.png';
 
   static const String _customerName = 'Sara A.';
-  static const String _orderInfo = 'Adliya · Order #YJK-...41';
-  static const String _cashAmountText = 'BHD 8.500';
+  static const String _orderId = '#YJK-...52';
+  static const String _itemCountLabel = '3 items';
+  static const String _paymentLabel = 'Prepaid · Yjeek Wallet';
 
-  bool _cashCollected = false;
   bool _hasProofPhoto = false;
-  bool _showDeliveryCompleted = false;
   Uint8List? _proofPhotoBytes;
   final ImagePicker _imagePicker = ImagePicker();
 
-  bool get _canComplete => _cashCollected && _hasProofPhoto;
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
-        return;
-      case 1:
-        OrdersNavSignal.openInstant();
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
-        return;
-      case 2:
-        Navigator.pushNamed(context, RouteNames.earnings);
-        return;
-      case 3:
-        Navigator.pushNamed(context, RouteNames.notifications);
-        return;
-      case 4:
-        Navigator.pushNamed(context, RouteNames.profile);
-        return;
-    }
-  }
+  bool get _canComplete => _hasProofPhoto;
 
   Future<void> _selectProofPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
@@ -170,26 +126,20 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
 
   void _completeDelivery() {
     if (!_canComplete) return;
-    setState(() => _showDeliveryCompleted = true);
+    Navigator.pushNamed(context, RouteNames.deliveryCompleted);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_showDeliveryCompleted) {
-      return const DeliveryCompletedScreen();
-    }
-
     _CompleteDeliveryScale.update(MediaQuery.sizeOf(context));
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: _white,
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: _white,
-        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: PopScope(
         canPop: false,
@@ -201,7 +151,7 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
           body: Column(
             children: [
               ColoredBox(
-                color: _white,
+                color: Colors.white,
                 child: SizedBox(height: topInset),
               ),
               _buildHeader(),
@@ -209,41 +159,20 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
                     16.w,
-                    16.h,
+                    14.h,
                     16.w,
                     16.h + bottomInset,
                   ),
                   children: [
-                    _buildCustomerCard(),
+                    _buildHandoverCard(),
                     SizedBox(height: 14.h),
-                    _buildCashCard(),
-                    SizedBox(height: 18.h),
-                    _buildProofHeading(),
-                    SizedBox(height: 10.h),
                     _buildUploadArea(),
                     SizedBox(height: 20.h),
                     _buildCompleteButton(),
-                    if (!_canComplete) ...[
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Select cash collected and add proof photo to continue.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          color: _textMuted,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
             ],
-          ),
-          bottomNavigationBar: BottomNavBar(
-            currentIndex: 1,
-            onTap: (index) => _handleBottomNavTap(context, index),
           ),
         ),
       ),
@@ -253,59 +182,26 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      color: _white,
-      padding: EdgeInsets.fromLTRB(4.w, 8.h, 16.w, 12.h),
+      color: _headerGreen,
+      padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-            onPressed: widget.onBack,
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: _textPrimary,
-              size: 20,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'Complete delivery',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w700,
-                color: _textPrimary,
-                height: 1.2,
+          Material(
+            color: Colors.white.withValues(alpha: 0.22),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: widget.onBack,
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 36.w,
+                height: 36.w,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white.withValues(alpha: 0.95),
+                  size: 18.sp,
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCustomerCard() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
-      decoration: BoxDecoration(
-        color: _white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _cardBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: _iconGreenBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: _iconGreen,
-              size: 22,
             ),
           ),
           SizedBox(width: 10.w),
@@ -314,22 +210,52 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _customerName,
+                  'Complete delivery',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 19.sp,
                     fontWeight: FontWeight.w700,
-                    color: _textPrimary,
-                    height: 1.25,
+                    color: Colors.white,
+                    height: 1.2,
                   ),
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  _orderInfo,
+                  '$_customerName · $_orderId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w500,
+                    color: _reportText,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.flag_outlined,
+                  color: _reportText,
+                  size: 13.sp,
+                ),
+                SizedBox(width: 4.w),
+                Text(
+                  'Report',
                   style: TextStyle(
                     fontSize: 11.sp,
-                    fontWeight: FontWeight.w500,
-                    color: _textMuted,
-                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                    color: _reportText,
                   ),
                 ),
               ],
@@ -340,119 +266,63 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     );
   }
 
-  Widget _buildCashCard() {
+  Widget _buildHandoverCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 12.h),
+      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
       decoration: BoxDecoration(
-        color: _cashCardBg,
+        color: _white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Collect cash',
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
-                        color: _cashHeading,
-                        height: 1.2,
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      _cashAmountText,
-                      style: TextStyle(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.w700,
-                        color: _cashAmount,
-                        height: 1.1,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.only(top: 2.h),
-                child: SizedBox(
-                  width: 28,
-                  height: 18,
-                  child: Image.asset(
-                    _cashIconAsset,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.payments_outlined,
-                      color: _cashHeading,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Material(
-            color: _white,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () => setState(() => _cashCollected = !_cashCollected),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _cashRowBorder),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _cashCollected
-                          ? Icons.check_circle_rounded
-                          : Icons.circle_outlined,
-                      color: _cashCollected ? _checkGreen : _radioEmpty,
-                      size: 22.sp,
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Text(
-                        'Cash collected from customer',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: _textPrimary,
-                          height: 1.25,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          Text(
+            'Handover',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+              height: 1.25,
             ),
           ),
+          SizedBox(height: 14.h),
+          _buildDetailRow('Items', _itemCountLabel),
+          SizedBox(height: 10.h),
+          _buildDetailRow('Payment', _paymentLabel),
         ],
       ),
     );
   }
 
-  Widget _buildProofHeading() {
-    return Text(
-      'Proof of delivery',
-      style: TextStyle(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w700,
-        color: _textPrimary,
-        height: 1.2,
-      ),
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w400,
+            color: _textMuted,
+            height: 1.3,
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+              color: _textPrimary,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -530,18 +400,29 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
           children: [
             Icon(
               Icons.photo_camera_outlined,
-              color: _uploadIcon,
-              size: 28.sp,
+              color: _textPrimary,
+              size: 24.sp,
             ),
             SizedBox(height: 8.h),
             Text(
-              'Add pickup photo · required',
+              'Add proof of delivery',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w700,
                 color: _textPrimary,
-                height: 1.3,
+                height: 1.2,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Required',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w400,
+                color: _textMuted,
+                height: 1.2,
               ),
             ),
           ],
@@ -557,34 +438,23 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
         width: double.infinity,
         height: 52.h,
         child: Material(
-          color: _confirmGreen,
-          borderRadius: BorderRadius.circular(28),
+          color: _headerGreen,
+          borderRadius: BorderRadius.circular(14),
           child: InkWell(
             onTap: _canComplete ? _completeDelivery : null,
-            borderRadius: BorderRadius.circular(28),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.check_circle_outlined,
+            borderRadius: BorderRadius.circular(14),
+            child: Center(
+              child: Text(
+                'Complete delivery',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
                   color: _white,
-                  size: 20.sp,
+                  height: 1.2,
                 ),
-                SizedBox(width: 8.w),
-                Flexible(
-                  child: Text(
-                    'Complete delivery',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: _white,
-                      height: 1.2,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

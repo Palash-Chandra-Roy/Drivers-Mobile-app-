@@ -4,9 +4,9 @@ import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart'
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
-/// Local UI-only “Go to vendor” screen for scheduled On Track deliveries.
-class GoToVendorScheduledScreen extends StatelessWidget {
-  const GoToVendorScheduledScreen({
+/// Deliver to customer screen for age-restricted Scheduled Vape deliveries.
+class ScheduledVapeDeliverToCustomerScreen extends StatelessWidget {
+  const ScheduledVapeDeliverToCustomerScreen({
     super.key,
     required this.order,
   });
@@ -18,12 +18,10 @@ class GoToVendorScheduledScreen extends StatelessWidget {
   static const Color _textPrimary = Color(0xFF1A1A1A);
   static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
-  static const Color _pickupBadgeBg = Color(0xFFE8F5E9);
-  static const Color _pickupBadgeText = Color(0xFF2E7D32);
-  static const Color _deadlineBg = Color(0xFFFFF8E8);
-  static const Color _deadlineText = Color(0xFF8B6914);
-  static const Color _reportText = Color(0xFFCFE3D5);
-  static const Color _windowGreen = Color(0xFF4DB04F);
+  static const Color _subtitleText = Color(0xFFCFE3D5);
+  static const Color _mapBg = Color(0xFFE8EFE4);
+  static const Color _ageWarningBg = Color(0xFFFFF4E6);
+  static const Color _ageWarningText = Color(0xFFB86A00);
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +53,10 @@ class GoToVendorScheduledScreen extends StatelessWidget {
                 child: ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                    const ScheduledMapPlaceholder(),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16.sw, 14.sh, 16.sw, 0),
+                      child: _buildMapPlaceholder(),
+                    ),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         16.sw,
@@ -65,9 +66,9 @@ class GoToVendorScheduledScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildVendorCard(),
+                          _buildDropOffCard(),
                           SizedBox(height: 12.sh),
-                          _buildDeadlineNotice(),
+                          _buildAgeRestrictionWarning(),
                           SizedBox(height: 14.sh),
                           scheduledReportNavigateRow(),
                           SizedBox(height: 12.sh),
@@ -90,7 +91,7 @@ class GoToVendorScheduledScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: _headerGreen,
-      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 12.sw, 10.sh),
+      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 16.sw, 10.sh),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -117,7 +118,7 @@ class GoToVendorScheduledScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Go to vendor',
+                  'Deliver to customer',
                   style: TextStyle(
                     fontSize: 15.ssp,
                     fontWeight: FontWeight.w700,
@@ -127,38 +128,12 @@ class GoToVendorScheduledScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 3.sh),
                 Text(
-                  order.distanceEtaLabel,
+                  order.deliveryDistanceEtaLabel,
                   style: TextStyle(
                     fontSize: 12.ssp,
                     fontWeight: FontWeight.w500,
-                    color: _reportText,
+                    color: _subtitleText,
                     height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  color: _reportText,
-                  size: 13.ssp,
-                ),
-                SizedBox(width: 4.sw),
-                Text(
-                  'Report',
-                  style: TextStyle(
-                    fontSize: 11.ssp,
-                    fontWeight: FontWeight.w600,
-                    color: _reportText,
                   ),
                 ),
               ],
@@ -169,7 +144,28 @@ class GoToVendorScheduledScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVendorCard() {
+  Widget _buildMapPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: 200.sh,
+      decoration: BoxDecoration(
+        color: _mapBg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '🗺️ map',
+        style: TextStyle(
+          fontSize: 14.ssp,
+          fontWeight: FontWeight.w500,
+          color: _textMuted,
+          height: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropOffCard() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.sw, 14.sh, 14.sw, 14.sh),
@@ -181,68 +177,27 @@ class GoToVendorScheduledScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.sw, vertical: 4.sh),
-                decoration: BoxDecoration(
-                  color: _pickupBadgeBg,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'PICKUP',
-                  style: TextStyle(
-                    fontSize: 10.ssp,
-                    fontWeight: FontWeight.w700,
-                    color: _pickupBadgeText,
-                    height: 1,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '📦 ${order.category}',
-                style: TextStyle(
-                  fontSize: 11.ssp,
-                  fontWeight: FontWeight.w500,
-                  color: _textMuted,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10.sh),
           Text(
-            order.vendorName,
+            'Drop-off',
             style: TextStyle(
-              fontSize: 18.ssp,
+              fontSize: 14.ssp,
               fontWeight: FontWeight.w700,
               color: _textPrimary,
-              height: 1.2,
+              height: 1.25,
             ),
           ),
           SizedBox(height: 14.sh),
-          _buildDetailRow('Address', order.vendorAddress),
+          _buildDetailRow('Customer', order.customerName),
           SizedBox(height: 10.sh),
-          _buildDetailRow('Order', order.orderId),
+          _buildDetailRow('Phone', order.customerPhone),
           SizedBox(height: 10.sh),
-          _buildDetailRow(
-            'Window',
-            order.scheduledWindow,
-            valueColor: _windowGreen,
-          ),
+          _buildDetailRow('Address', order.customerAddress),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String value, {
-    Color? valueColor,
-  }) {
+  Widget _buildDetailRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -263,7 +218,7 @@ class GoToVendorScheduledScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 13.ssp,
               fontWeight: FontWeight.w700,
-              color: valueColor ?? _textPrimary,
+              color: _textPrimary,
               height: 1.3,
             ),
           ),
@@ -272,26 +227,30 @@ class GoToVendorScheduledScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineNotice() {
+  Widget _buildAgeRestrictionWarning() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 14.sw, vertical: 12.sh),
       decoration: BoxDecoration(
-        color: _deadlineBg,
+        color: _ageWarningBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.access_time_rounded, color: _deadlineText, size: 18.ssp),
+          Text(
+            '🔞',
+            style: TextStyle(fontSize: 16.ssp, height: 1.2),
+          ),
           SizedBox(width: 10.sw),
           Expanded(
             child: Text(
-              order.pickupDeadlineNotice,
+              'Customer must be 18+ and verified at the door.\n'
+              'No verify = return the order.',
               style: TextStyle(
                 fontSize: 12.ssp,
                 fontWeight: FontWeight.w600,
-                color: _deadlineText,
+                color: _ageWarningText,
                 height: 1.35,
               ),
             ),
@@ -310,15 +269,16 @@ class GoToVendorScheduledScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: () {
-            final route = _isScheduledVapeOrder(order)
-                ? RouteNames.scheduledVapePickup
-                : RouteNames.scheduledPickup;
-            Navigator.pushNamed(context, route, arguments: order);
+            Navigator.pushNamed(
+              context,
+              RouteNames.ageRestrictedDelivery,
+              arguments: order,
+            );
           },
           borderRadius: BorderRadius.circular(14),
           child: Center(
             child: Text(
-              'Arrived at Vendor',
+              'Arrived at customer',
               style: TextStyle(
                 fontSize: 15.ssp,
                 fontWeight: FontWeight.w700,
@@ -330,10 +290,4 @@ class GoToVendorScheduledScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-bool _isScheduledVapeOrder(ScheduledDeliveryOrder order) {
-  final category = order.category.toLowerCase();
-  final type = order.orderTypeLabel.toLowerCase();
-  return category.contains('vape') || type.contains('vape');
 }

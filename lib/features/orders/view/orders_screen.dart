@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yjeek_driver/features/orders/view/deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/reject_scheduled_order_screen.dart';
 import 'package:yjeek_driver/features/orders/view/release_scheduled_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -141,17 +142,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
   ];
 
   static const _completedOrders = [
-    _CompletedScheduledOrder(
-      id: '#YJK-...41',
-      route: 'The Green Kitchen → Adliya',
-      window: 'Today · 1–3 PM',
-      deliveredAt: 'Delivered 1:48 PM ·',
+    ScheduledCompletedOrderDetail(
+      orderId: '#YJK-...52',
+      cardRouteLabel: 'Vapeology → Adliya',
+      scheduledWindow: 'Today · 6–8 PM',
+      deliveredAtLabel: 'Delivered 1:48 PM ·',
+      vendorName: 'Vapeology',
+      vendorAddress: 'Seef · Bldg 210',
+      distance: '1.4 km',
+      eta: '~6 min',
+      categoryBadge: 'Vape · 18+',
+      isVapeRestricted: true,
     ),
-    _CompletedScheduledOrder(
-      id: '#YJK-...39',
-      route: 'Lulu Express → Seef',
-      window: 'Yesterday · 6–8 PM',
-      deliveredAt: 'Delivered 7:42 PM ·',
+    ScheduledCompletedOrderDetail(
+      orderId: '#YJK-...39',
+      cardRouteLabel: 'Lulu Express → Seef',
+      scheduledWindow: 'Yesterday · 6–8 PM',
+      deliveredAtLabel: 'Delivered 7:42 PM ·',
+      vendorName: 'Lulu Express',
+      vendorAddress: 'Seef Mall · Ground Floor',
+      distance: '2.1 km',
+      eta: '~8 min',
+      categoryBadge: 'Groceries',
+      isVapeRestricted: false,
     ),
   ];
 
@@ -300,6 +313,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  void _openCompletedOrderDetail(ScheduledCompletedOrderDetail order) {
+    Navigator.pushNamed(
+      context,
+      RouteNames.scheduledCompletedOrderDetail,
+      arguments: order,
+    );
+  }
+
   void selectSegment(int index) {
     setState(() => _segment = index.clamp(0, 1));
   }
@@ -383,6 +404,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       onTrackOrders: _onTrackOrders,
                       onTrackOrderTap: _openScheduledTrack,
                       completedOrders: _completedOrders,
+                      onCompletedOrderTap: _openCompletedOrderDetail,
                       onDoubleConfirm: _onDoubleConfirm,
                       onRelease: _openRelease,
                       onAcceptNew: _acceptNewOrder,
@@ -482,20 +504,6 @@ class _ConfirmScheduledOrder {
   final String respondIn;
 }
 
-class _CompletedScheduledOrder {
-  const _CompletedScheduledOrder({
-    required this.id,
-    required this.route,
-    required this.window,
-    required this.deliveredAt,
-  });
-
-  final String id;
-  final String route;
-  final String window;
-  final String deliveredAt;
-}
-
 class _ScheduledOrdersBody extends StatelessWidget {
   const _ScheduledOrdersBody({
     required this.filters,
@@ -506,6 +514,7 @@ class _ScheduledOrdersBody extends StatelessWidget {
     required this.onTrackOrders,
     required this.onTrackOrderTap,
     required this.completedOrders,
+    required this.onCompletedOrderTap,
     required this.onDoubleConfirm,
     required this.onRelease,
     required this.onAcceptNew,
@@ -519,7 +528,8 @@ class _ScheduledOrdersBody extends StatelessWidget {
   final List<_ConfirmScheduledOrder> confirmOrders;
   final List<ScheduledDeliveryOrder> onTrackOrders;
   final ValueChanged<ScheduledDeliveryOrder> onTrackOrderTap;
-  final List<_CompletedScheduledOrder> completedOrders;
+  final List<ScheduledCompletedOrderDetail> completedOrders;
+  final ValueChanged<ScheduledCompletedOrderDetail> onCompletedOrderTap;
   final VoidCallback onDoubleConfirm;
   final ValueChanged<String> onRelease;
   final ValueChanged<_NewScheduledOrder> onAcceptNew;
@@ -613,8 +623,10 @@ class _ScheduledOrdersBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           itemCount: completedOrders.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) =>
-              _CompletedScheduledCard(data: completedOrders[index]),
+          itemBuilder: (context, index) => _CompletedScheduledCard(
+            data: completedOrders[index],
+            onTap: () => onCompletedOrderTap(completedOrders[index]),
+          ),
         );
       case 0:
       default:
@@ -1062,86 +1074,97 @@ class _OnTrackCard extends StatelessWidget {
 }
 
 class _CompletedScheduledCard extends StatelessWidget {
-  const _CompletedScheduledCard({required this.data});
+  const _CompletedScheduledCard({
+    required this.data,
+    required this.onTap,
+  });
 
-  final _CompletedScheduledOrder data;
+  final ScheduledCompletedOrderDetail data;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        color: _OrdersScreenState._surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _OrdersScreenState._cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: _OrdersScreenState._surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _OrdersScreenState._cardBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  data.id,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: _OrdersScreenState._textPrimary,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      data.orderId,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: _OrdersScreenState._textPrimary,
+                      ),
+                    ),
                   ),
+                  const _StatusPill(
+                    label: 'DELIVERED',
+                    background: _OrdersScreenState._greenPillBg,
+                    foreground: _OrdersScreenState._greenDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                data.cardRouteLabel,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _OrdersScreenState._textPrimary,
+                  height: 1.3,
                 ),
               ),
-              const _StatusPill(
-                label: 'DELIVERED',
-                background: _OrdersScreenState._greenPillBg,
-                foreground: _OrdersScreenState._greenDark,
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text(
+                    'Window',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: _OrdersScreenState._textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      data.scheduledWindow,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _OrdersScreenState._green,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            data.route,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _OrdersScreenState._textPrimary,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Text(
-                'Window',
-                style: TextStyle(
+              const SizedBox(height: 6),
+              Text(
+                data.deliveredAtLabel,
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
                   color: _OrdersScreenState._textMuted,
                 ),
               ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  data.window,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _OrdersScreenState._green,
-                  ),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            data.deliveredAt,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: _OrdersScreenState._textMuted,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
