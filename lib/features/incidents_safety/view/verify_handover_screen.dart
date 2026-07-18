@@ -1,64 +1,60 @@
 import 'package:flutter/material.dart';
-import 'package:yjeek_driver/core/constants/app_sizes.dart';
-import 'package:yjeek_driver/core/utils/app_helpers.dart';
-import 'package:yjeek_driver/core/utils/validators.dart';
-import 'package:yjeek_driver/core/widgets/custom_app_bar.dart';
-import 'package:yjeek_driver/core/widgets/custom_button.dart';
-import 'package:yjeek_driver/core/widgets/custom_text_field.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/incident_ui.dart';
 
-class VerifyHandoverScreen extends StatefulWidget {
-  const VerifyHandoverScreen({super.key});
+/// DR5 · Verify handover / OTP problem
+class VerifyHandoverScreen extends StatelessWidget {
+  const VerifyHandoverScreen({
+    super.key,
+    this.args = const IncidentContextArgs(),
+  });
 
-  @override
-  State<VerifyHandoverScreen> createState() => _VerifyHandoverScreenState();
-}
-
-class _VerifyHandoverScreenState extends State<VerifyHandoverScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _codeController = TextEditingController();
-
-  @override
-  void dispose() {
-    _codeController.dispose();
-    super.dispose();
-  }
-
-  void _confirm() {
-    if (!_formKey.currentState!.validate()) return;
-    AppHelpers.showSnackBar(context, 'Handover verified successfully!');
-    Navigator.pop(context);
-  }
+  final IncidentContextArgs args;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Verify Handover'),
+      backgroundColor: IncidentColors.screenBg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.paddingMd),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Ask the customer for their order verification code to confirm handover.',
-                  style: TextStyle(height: 1.5),
-                ),
-                const SizedBox(height: AppSizes.paddingLg),
-                CustomTextField(
-                  controller: _codeController,
-                  labelText: 'Order Code',
-                  hintText: 'Enter 4-digit code',
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.pin_outlined),
-                  validator: (v) => Validators.required(v, fieldName: 'Order code'),
-                ),
-                const Spacer(),
-                CustomButton(title: 'Confirm Handover', onPressed: _confirm),
-              ],
+        bottom: false,
+        child: Column(
+          children: [
+            const IncidentHeader(title: 'Verify / OTP problem'),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                children: [
+                  const Text(
+                    'This category needs verified handover. Don’t hand over without it.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: IncidentColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Resend code to the customer’s registered number',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: IncidentColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  IncidentPrimaryButton(
+                    label: 'Resend code to the customer',
+                    color: IncidentColors.successGreen,
+                    onPressed: () {
+                      showIncidentSnack(
+                        context,
+                        'Verification code resent to customer',
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

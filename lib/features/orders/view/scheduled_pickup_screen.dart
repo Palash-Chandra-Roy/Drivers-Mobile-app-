@@ -225,30 +225,40 @@ class _ScheduledPickupScreenState extends State<ScheduledPickupScreen> {
               ],
             ),
           ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(20),
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(
+              context,
+              RouteNames.reportAtPickup,
+              arguments: {
+                'orderId': order.orderId,
+                'vendorName': order.vendorName,
+              },
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  color: _reportText,
-                  size: 13.ssp,
-                ),
-                SizedBox(width: 4.sw),
-                Text(
-                  'Report',
-                  style: TextStyle(
-                    fontSize: 11.ssp,
-                    fontWeight: FontWeight.w600,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.flag_outlined,
                     color: _reportText,
+                    size: 13.ssp,
                   ),
-                ),
-              ],
+                  SizedBox(width: 4.sw),
+                  Text(
+                    'Report',
+                    style: TextStyle(
+                      fontSize: 11.ssp,
+                      fontWeight: FontWeight.w600,
+                      color: _reportText,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

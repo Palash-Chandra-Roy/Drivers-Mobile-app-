@@ -118,7 +118,7 @@ class GoToRestaurantScreen extends StatelessWidget {
                         children: [
                           _buildRestaurantCard(),
                           const SizedBox(height: 14),
-                          _buildReportNavigateRow(),
+                          _buildReportNavigateRow(context),
                           const SizedBox(height: 12),
                           _buildArrivedButton(context),
                         ],
@@ -278,7 +278,7 @@ class GoToRestaurantScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReportNavigateRow() {
+  Widget _buildReportNavigateRow(BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -291,7 +291,14 @@ class GoToRestaurantScreen extends StatelessWidget {
                 side: const BorderSide(color: _reportBorder, width: 1.2),
               ),
               child: InkWell(
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  RouteNames.reportAtPickup,
+                  arguments: {
+                    'orderId': args.orderId,
+                    'restaurantName': args.restaurantName,
+                  },
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,

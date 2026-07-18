@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:yjeek_driver/features/orders/view/complete_delivery_screen.dart';
+import 'package:yjeek_driver/routes/route_names.dart';
 
 /// Local UI-only “Deliver to customer” screen (Instant Active → Continue).
 /// Shown inside Orders tab so BottomNavigation stays on Orders.
@@ -292,7 +293,10 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
                 side: const BorderSide(color: _reportBorder, width: 1.2),
               ),
               child: InkWell(
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  RouteNames.reportAtDropoff,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,

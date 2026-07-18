@@ -73,7 +73,16 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                               ? _buildPrepaidCard()
                               : _buildCashCard(),
                           SizedBox(height: 14.sh),
-                          scheduledReportNavigateRow(),
+                          scheduledReportNavigateRow(
+                            onReport: () => Navigator.pushNamed(
+                              context,
+                              RouteNames.reportAtDropoff,
+                              arguments: {
+                                'orderId': order.orderId,
+                                'customerName': order.customerName,
+                              },
+                            ),
+                          ),
                           SizedBox(height: 12.sh),
                           _buildArrivedButton(context),
                         ],

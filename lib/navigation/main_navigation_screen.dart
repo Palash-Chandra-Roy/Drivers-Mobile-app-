@@ -4,8 +4,8 @@ import 'package:yjeek_driver/core/constants/app_colors.dart';
 import 'package:yjeek_driver/features/dashboard/view/dashboard_screen.dart';
 import 'package:yjeek_driver/features/earnings/view/earnings_screen.dart';
 import 'package:yjeek_driver/features/notifications/provider/notification_provider.dart';
-import 'package:yjeek_driver/features/notifications/view/notifications_screen.dart';
 import 'package:yjeek_driver/features/orders/view/orders_screen.dart';
+import 'package:yjeek_driver/features/performance/view/performance_screen.dart';
 import 'package:yjeek_driver/features/profile/view/profile_screen.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
@@ -24,7 +24,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     DashboardScreen(),
     OrdersScreen(),
     EarningsScreen(),
-    NotificationsScreen(),
+    PerformanceScreen(),
     ProfileScreen(),
   ];
 

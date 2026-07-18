@@ -10,10 +10,66 @@ class IncidentsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = [
-      _MenuOption('Report an Issue', Icons.report_problem_outlined, RouteNames.reportIssue),
-      _MenuOption('Wrong or Missing Items', Icons.inventory_2_outlined, RouteNames.wrongMissingItems),
-      _MenuOption('Verify Handover', Icons.verified_user_outlined, RouteNames.verifyHandover),
-      _MenuOption('Safety Help', Icons.shield_outlined, RouteNames.safetyHelp),
+      _MenuOption(
+        'Report — at pickup',
+        Icons.storefront_outlined,
+        RouteNames.reportAtPickup,
+      ),
+      _MenuOption(
+        'Report — at drop-off',
+        Icons.location_on_outlined,
+        RouteNames.reportAtDropoff,
+      ),
+      _MenuOption(
+        'Order not ready',
+        Icons.timer_outlined,
+        RouteNames.vendorNotReady,
+      ),
+      _MenuOption(
+        'Damage at pickup',
+        Icons.broken_image_outlined,
+        RouteNames.damageAtPickup,
+      ),
+      _MenuOption(
+        'Wrong / missing items',
+        Icons.inventory_2_outlined,
+        RouteNames.wrongMissingItems,
+      ),
+      _MenuOption(
+        'Can’t reach customer',
+        Icons.phone_disabled_outlined,
+        RouteNames.cantReachCustomer,
+      ),
+      _MenuOption(
+        'Can’t find address',
+        Icons.map_outlined,
+        RouteNames.cantFindAddress,
+      ),
+      _MenuOption(
+        'Damage in transit',
+        Icons.local_shipping_outlined,
+        RouteNames.damageInTransit,
+      ),
+      _MenuOption(
+        'Verify / OTP problem',
+        Icons.verified_user_outlined,
+        RouteNames.verifyHandover,
+      ),
+      _MenuOption(
+        'Vehicle breakdown',
+        Icons.two_wheeler_outlined,
+        RouteNames.vehicleBreakdown,
+      ),
+      _MenuOption(
+        'Dispatch chat',
+        Icons.chat_outlined,
+        RouteNames.dispatchCantReachChat,
+      ),
+      _MenuOption(
+        'Safety Help / SOS',
+        Icons.shield_outlined,
+        RouteNames.safetyHelp,
+      ),
     ];
 
     return Scaffold(
@@ -34,7 +90,10 @@ class IncidentsScreen extends StatelessWidget {
                 ),
                 child: Icon(option.icon, color: AppColors.primary),
               ),
-              title: Text(option.title, style: const TextStyle(fontWeight: FontWeight.w500)),
+              title: Text(
+                option.title,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.pushNamed(context, option.route),
             ),

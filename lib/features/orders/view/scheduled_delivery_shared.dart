@@ -123,7 +123,7 @@ class ScheduledDashedBorderPainter extends CustomPainter {
       oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
-Widget scheduledReportNavigateRow() {
+Widget scheduledReportNavigateRow({VoidCallback? onReport}) {
   const orange = Color(0xFFE67E22);
   return Row(
     children: [
@@ -136,20 +136,24 @@ Widget scheduledReportNavigateRow() {
               borderRadius: BorderRadius.circular(14),
               side: const BorderSide(color: Color(0xFFF5A623), width: 1.2),
             ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.flag_outlined, color: orange, size: 18),
-                SizedBox(width: 6),
-                Text(
-                  'Report',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: orange,
+            child: InkWell(
+              onTap: onReport,
+              borderRadius: BorderRadius.circular(14),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.flag_outlined, color: orange, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Report',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: orange,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

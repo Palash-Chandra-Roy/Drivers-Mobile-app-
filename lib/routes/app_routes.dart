@@ -15,9 +15,19 @@ import 'package:yjeek_driver/features/food_delivery/view/delivery_success_screen
 import 'package:yjeek_driver/features/food_delivery/view/dropoff_details_screen.dart';
 import 'package:yjeek_driver/features/food_delivery/view/food_delivery_screen.dart';
 import 'package:yjeek_driver/features/food_delivery/view/pickup_details_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/cant_find_address_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/cant_reach_customer_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/damage_at_pickup_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/damage_in_transit_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/dispatch_cant_reach_chat_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/incident_ui.dart';
 import 'package:yjeek_driver/features/incidents_safety/view/incidents_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/report_at_dropoff_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/report_at_pickup_screen.dart';
 import 'package:yjeek_driver/features/incidents_safety/view/report_issue_screen.dart';
 import 'package:yjeek_driver/features/incidents_safety/view/safety_help_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/vehicle_breakdown_screen.dart';
+import 'package:yjeek_driver/features/incidents_safety/view/vendor_not_ready_screen.dart';
 import 'package:yjeek_driver/features/incidents_safety/view/verify_handover_screen.dart';
 import 'package:yjeek_driver/features/incidents_safety/view/wrong_missing_items_screen.dart';
 import 'package:yjeek_driver/features/notifications/view/notifications_screen.dart';
@@ -46,8 +56,18 @@ import 'package:yjeek_driver/features/orders/view/order_delivery_new_request_scr
 import 'package:yjeek_driver/features/orders/view/order_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/order_details_screen.dart';
 import 'package:yjeek_driver/features/orders/view/orders_screen.dart';
+import 'package:yjeek_driver/features/performance/view/performance_screen.dart';
+import 'package:yjeek_driver/features/profile/view/change_number_screen.dart';
+import 'package:yjeek_driver/features/profile/view/documents_screen.dart';
 import 'package:yjeek_driver/features/profile/view/edit_profile_screen.dart';
 import 'package:yjeek_driver/features/profile/view/profile_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_cpr_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_driving_license_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_passport_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_profile_photo_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_vehicle_registration_screen.dart';
+import 'package:yjeek_driver/features/profile/view/upload_visa_screen.dart';
+import 'package:yjeek_driver/features/profile/view/verify_change_number_screen.dart';
 import 'package:yjeek_driver/features/profile/view/vehicle_info_screen.dart';
 import 'package:yjeek_driver/features/scheduled_orders/view/age_verification_screen.dart';
 import 'package:yjeek_driver/features/scheduled_orders/view/restricted_order_screen.dart';
@@ -281,16 +301,57 @@ class AppRoutes {
         return _page(const IncidentsScreen());
       case RouteNames.reportIssue:
         return _page(const ReportIssueScreen());
+      case RouteNames.reportAtPickup:
+        return _page(ReportAtPickupScreen(args: _incidentArgs(settings)));
+      case RouteNames.reportAtDropoff:
+        return _page(ReportAtDropoffScreen(args: _incidentArgs(settings)));
+      case RouteNames.vendorNotReady:
+        return _page(VendorNotReadyScreen(args: _incidentArgs(settings)));
+      case RouteNames.damageAtPickup:
+        return _page(DamageAtPickupScreen(args: _incidentArgs(settings)));
+      case RouteNames.cantReachCustomer:
+        return _page(CantReachCustomerScreen(args: _incidentArgs(settings)));
+      case RouteNames.cantFindAddress:
+        return _page(CantFindAddressScreen(args: _incidentArgs(settings)));
+      case RouteNames.vehicleBreakdown:
+        return _page(VehicleBreakdownScreen(args: _incidentArgs(settings)));
+      case RouteNames.damageInTransit:
+        return _page(DamageInTransitScreen(args: _incidentArgs(settings)));
       case RouteNames.wrongMissingItems:
-        return _page(const WrongMissingItemsScreen());
+        return _page(WrongMissingItemsScreen(args: _incidentArgs(settings)));
       case RouteNames.verifyHandover:
-        return _page(const VerifyHandoverScreen());
+        return _page(VerifyHandoverScreen(args: _incidentArgs(settings)));
       case RouteNames.safetyHelp:
         return _page(const SafetyHelpScreen());
       case RouteNames.dispatchChat:
         return _page(const DispatchChatScreen());
+      case RouteNames.dispatchCantReachChat:
+        return _page(
+          DispatchCantReachChatScreen(args: _incidentArgs(settings)),
+        );
       case RouteNames.profile:
         return _page(const ProfileScreen());
+      case RouteNames.performance:
+        return _page(const PerformanceScreen());
+      case RouteNames.documents:
+        return _page(const DocumentsScreen());
+      case RouteNames.uploadCpr:
+        return _page(const UploadCprScreen());
+      case RouteNames.uploadDrivingLicense:
+        return _page(const UploadDrivingLicenseScreen());
+      case RouteNames.uploadVehicleRegistration:
+        return _page(const UploadVehicleRegistrationScreen());
+      case RouteNames.uploadProfilePhoto:
+        return _page(const UploadProfilePhotoScreen());
+      case RouteNames.uploadPassport:
+        return _page(const UploadPassportScreen());
+      case RouteNames.uploadVisa:
+        return _page(const UploadVisaScreen());
+      case RouteNames.changeNumber:
+        return _page(const ChangeNumberScreen());
+      case RouteNames.verifyChangeNumber:
+        final phone = settings.arguments as String? ?? '+973 3300 0000';
+        return _page(VerifyChangeNumberScreen(phoneDisplay: phone));
       case RouteNames.editProfile:
         return _page(const EditProfileScreen());
       case RouteNames.vehicleInfo:
@@ -304,6 +365,23 @@ class AppRoutes {
       default:
         return _page(const UnknownRouteScreen());
     }
+  }
+
+  static IncidentContextArgs _incidentArgs(RouteSettings settings) {
+    final args = settings.arguments;
+    if (args is IncidentContextArgs) return args;
+    if (args is Map) {
+      return IncidentContextArgs(
+        orderId: '${args['orderId'] ?? '#YJK-…41'}',
+        vendorName: '${args['vendorName'] ?? args['restaurantName'] ?? 'The Green Kitchen'}',
+        customerName: '${args['customerName'] ?? 'Sara A.'}',
+        area: '${args['area'] ?? 'Adliya'}',
+        address:
+            '${args['address'] ?? 'Adliya · Bldg 23, Road 2825, Flat 82'}',
+        pin: '${args['pin'] ?? 'Pin: 26.2361, 50.5876'}',
+      );
+    }
+    return const IncidentContextArgs();
   }
 
   static MaterialPageRoute<dynamic> _page(Widget child) {

@@ -71,7 +71,16 @@ class ScheduledCompletedOrderDetailScreen extends StatelessWidget {
                         children: [
                           _buildVendorCard(),
                           SizedBox(height: 14.sh),
-                          scheduledReportNavigateRow(),
+                          scheduledReportNavigateRow(
+                            onReport: () => Navigator.pushNamed(
+                              context,
+                              RouteNames.reportAtDropoff,
+                              arguments: {
+                                'orderId': order.orderId,
+                                'vendorName': order.vendorName,
+                              },
+                            ),
+                          ),
                           SizedBox(height: 12.sh),
                           _buildArrivedButton(context),
                         ],
