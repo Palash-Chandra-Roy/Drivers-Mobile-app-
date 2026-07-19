@@ -35,7 +35,7 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
   bool _showCompleteDelivery = false;
 
   void _openCompleteDelivery() {
-    setState(() => _showCompleteDelivery = true);
+    Navigator.pushNamed(context, RouteNames.completeDelivery);
   }
 
   void _closeCompleteDelivery() {

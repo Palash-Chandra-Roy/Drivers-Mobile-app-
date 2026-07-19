@@ -18,6 +18,8 @@ class RouteNames {
   static const String confirmPickup = '/confirm-pickup';
   static const String rejectOrder = '/reject-order';
   static const String deliverToCustomer = '/deliver-to-customer';
+  static const String cashCompleteDelivery = '/cash-complete-delivery';
+  static const String cashDeliveryCompleted = '/cash-delivery-completed';
   static const String completeDelivery = '/complete-delivery';
   static const String deliveryCompleted = '/delivery-completed';
   static const String acceptOrder = '/accept-order';
@@ -30,15 +32,20 @@ class RouteNames {
   static const String scheduledOrderDetails = '/scheduled-order-details';
   static const String goToVendorScheduled = '/go-to-vendor-scheduled';
   static const String scheduledPickup = '/scheduled-pickup';
+  static const String securePickupLuxury = '/secure-pickup-luxury';
   static const String scheduledVapePickup = '/scheduled-vape-pickup';
   static const String scheduledDeliverToCustomer =
       '/scheduled-deliver-to-customer';
+  static const String restrictedDeliverToCustomer =
+      '/restricted-deliver-to-customer';
+  static const String secureDeliveryLuxury = '/secure-delivery-luxury';
   static const String scheduledVapeDeliverToCustomer =
       '/scheduled-vape-deliver-to-customer';
   static const String scheduledCompleteDelivery =
       '/scheduled-complete-delivery';
   static const String scheduledDeliveryCompleted =
       '/scheduled-delivery-completed';
+  static const String luxuryDeliveryCompleted = '/luxury-delivery-completed';
   static const String scheduledVapeDeliveryCompleted =
       '/scheduled-vape-delivery-completed';
   static const String scheduledCompletedOrderDetail =

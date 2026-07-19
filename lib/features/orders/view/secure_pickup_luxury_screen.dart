@@ -5,9 +5,9 @@ import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart'
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
-/// Age-restricted delivery verification for Scheduled Vape orders.
-class AgeRestrictedDeliveryScreen extends StatefulWidget {
-  const AgeRestrictedDeliveryScreen({
+/// Secure pickup screen for restricted luxury scheduled deliveries.
+class SecurePickupLuxuryScreen extends StatefulWidget {
+  const SecurePickupLuxuryScreen({
     super.key,
     required this.order,
   });
@@ -15,76 +15,37 @@ class AgeRestrictedDeliveryScreen extends StatefulWidget {
   final ScheduledDeliveryOrder order;
 
   @override
-  State<AgeRestrictedDeliveryScreen> createState() =>
-      _AgeRestrictedDeliveryScreenState();
+  State<SecurePickupLuxuryScreen> createState() =>
+      _SecurePickupLuxuryScreenState();
 }
 
-class _AgeRestrictedDeliveryScreenState
-    extends State<AgeRestrictedDeliveryScreen> {
+class _SecurePickupLuxuryScreenState extends State<SecurePickupLuxuryScreen> {
   static const Color _headerGreen = Color(0xFF4DB04F);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _screenBg = Color(0xFFF4F8F2);
   static const Color _textPrimary = Color(0xFF1A1A1A);
   static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
+  static const Color _badgeBg = Color(0xFFE8F5E9);
+  static const Color _badgeText = Color(0xFF2E7D32);
   static const Color _subtitleText = Color(0xFFCFE3D5);
-  static const Color _warningBg = Color(0xFFFFF4E6);
-  static const Color _warningText = Color(0xFFB86A00);
-  static const Color _uploadBg = Color(0xFFF5F5F5);
+  static const Color _uploadBg = Color(0xFFF7F7F7);
   static const Color _uploadBorder = Color(0xFFBDBDBD);
-  static const Color _avatarBg = Color(0xFFE8F5E9);
-  static const Color _avatarText = Color(0xFF2E7D32);
-  static const Color _returnText = Color(0xFFE53935);
-  static const Color _returnBorder = Color(0xFFE0E0E0);
 
-  static const List<String> _idChecks = [
-    'Name matches the card',
-    'Photo matches the person',
-    '18 years or older',
+  static const List<String> _pickupChecks = [
+    'Sealed box & tamper seal intact',
+    'Serial / IMEI logged with vendor',
+    'Insured high-value item',
+    'Recipient ID + signature required',
   ];
 
-  bool _hasCprPhoto = false;
-  bool _hasProofPhoto = false;
-  Uint8List? _cprPhotoBytes;
-  Uint8List? _proofPhotoBytes;
+  bool _hasSealedBoxPhoto = false;
+  Uint8List? _sealedBoxPhotoBytes;
   final ImagePicker _imagePicker = ImagePicker();
 
   ScheduledDeliveryOrder get order => widget.order;
 
-  String get _customerFullName => _resolveFullCustomerName(order.customerName);
-
-  String get _customerInitials => _initialsFromName(_customerFullName);
-
-  String get _idSummaryLine => _resolveIdSummary(order);
-
-  String get _headerSubtitle {
-    final category =
-        order.category.contains('Vape') ? order.category : 'Vape · 18+';
-    return '$category · ${order.orderId}';
-  }
-
-  static String _resolveFullCustomerName(String customerName) {
-    if (customerName.trim() == 'Sara A.') return 'Sara Ahmed';
-    return customerName;
-  }
-
-  static String _initialsFromName(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
-  }
-
-  static String _resolveIdSummary(ScheduledDeliveryOrder order) {
-    final fullName = _resolveFullCustomerName(order.customerName);
-    if (fullName == 'Sara Ahmed') {
-      return 'CPR ••• 8821 · DOB 12 Jun 1996 · 29 yrs';
-    }
-    return 'CPR ••• •••• · DOB unavailable';
-  }
-
-  Future<void> _selectPhoto({required bool forCpr}) async {
+  Future<void> _selectSealedBoxPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: _white,
@@ -125,13 +86,8 @@ class _AgeRestrictedDeliveryScreenState
       if (!mounted) return;
 
       setState(() {
-        if (forCpr) {
-          _cprPhotoBytes = bytes;
-          _hasCprPhoto = true;
-        } else {
-          _proofPhotoBytes = bytes;
-          _hasProofPhoto = true;
-        }
+        _sealedBoxPhotoBytes = bytes;
+        _hasSealedBoxPhoto = true;
       });
     } on PlatformException {
       if (!mounted) return;
@@ -150,18 +106,19 @@ class _AgeRestrictedDeliveryScreenState
     }
   }
 
-  void _confirmDelivery() {
-    Navigator.pushNamed(
-      context,
-      RouteNames.scheduledVapeDeliveryCompleted,
-      arguments: order,
-    );
-  }
+  void _confirmPickup() {
+    if (!_hasSealedBoxPhoto) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add the sealed-box photo before continuing.'),
+        ),
+      );
+      return;
+    }
 
-  void _returnOrder() {
     Navigator.pushNamed(
       context,
-      RouteNames.returnTheOrder,
+      RouteNames.restrictedDeliverToCustomer,
       arguments: order,
     );
   }
@@ -201,17 +158,13 @@ class _AgeRestrictedDeliveryScreenState
                     16.sh + bottomInset,
                   ),
                   children: [
-                    _buildWarningBanner(),
+                    _buildCategoryBadge(),
                     SizedBox(height: 12.sh),
-                    _buildCprPhotoCard(),
-                    SizedBox(height: 12.sh),
-                    _buildIdMatchCard(),
-                    SizedBox(height: 12.sh),
-                    _buildProofCard(),
-                    SizedBox(height: 20.sh),
+                    _buildPickupChecksCard(),
+                    SizedBox(height: 14.sh),
+                    _buildUploadArea(),
+                    SizedBox(height: 18.sh),
                     _buildConfirmButton(),
-                    SizedBox(height: 10.sh),
-                    _buildReturnButton(),
                   ],
                 ),
               ),
@@ -254,9 +207,9 @@ class _AgeRestrictedDeliveryScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Age-restricted delivery',
+                  'Secure pickup',
                   style: TextStyle(
-                    fontSize: 15.ssp,
+                    fontSize: 19.ssp,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     height: 1.2,
@@ -264,7 +217,7 @@ class _AgeRestrictedDeliveryScreenState
                 ),
                 SizedBox(height: 3.sh),
                 Text(
-                  _headerSubtitle,
+                  'High-value · ${order.orderId}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -282,43 +235,29 @@ class _AgeRestrictedDeliveryScreenState
     );
   }
 
-  Widget _buildWarningBanner() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.sw, vertical: 12.sh),
-      decoration: BoxDecoration(
-        color: _warningBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: _warningText,
-            size: 18.ssp,
+  Widget _buildCategoryBadge() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.sw, vertical: 6.sh),
+        decoration: BoxDecoration(
+          color: _badgeBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          '💎 Luxury · high-value · restricted',
+          style: TextStyle(
+            fontSize: 12.ssp,
+            fontWeight: FontWeight.w700,
+            color: _badgeText,
+            height: 1.15,
           ),
-          SizedBox(width: 10.sw),
-          Expanded(
-            child: Text(
-              'Verify the customer is 18+ and the name matches the order before handing over.',
-              style: TextStyle(
-                fontSize: 12.ssp,
-                fontWeight: FontWeight.w600,
-                color: _warningText,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSectionCard({
-    required String title,
-    required Widget child,
-  }) {
+  Widget _buildPickupChecksCard() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.sw, 14.sh, 14.sw, 14.sh),
@@ -331,7 +270,7 @@ class _AgeRestrictedDeliveryScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            'Secure pickup checks',
             style: TextStyle(
               fontSize: 14.ssp,
               fontWeight: FontWeight.w700,
@@ -340,84 +279,9 @@ class _AgeRestrictedDeliveryScreenState
             ),
           ),
           SizedBox(height: 14.sh),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCprPhotoCard() {
-    return _buildSectionCard(
-      title: '2 · Photograph the customer\u2019s CPR',
-      child: _buildUploadArea(
-        hasPhoto: _hasCprPhoto,
-        photoBytes: _cprPhotoBytes,
-        placeholderText: 'Add CPR photo · required',
-        onTap: () => _selectPhoto(forCpr: true),
-      ),
-    );
-  }
-
-  Widget _buildIdMatchCard() {
-    return _buildSectionCard(
-      title: '3 · Match with the ID on file',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 40.sw,
-                height: 40.sw,
-                decoration: const BoxDecoration(
-                  color: _avatarBg,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _customerInitials,
-                  style: TextStyle(
-                    fontSize: 14.ssp,
-                    fontWeight: FontWeight.w700,
-                    color: _avatarText,
-                    height: 1,
-                  ),
-                ),
-              ),
-              SizedBox(width: 12.sw),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _customerFullName,
-                      style: TextStyle(
-                        fontSize: 14.ssp,
-                        fontWeight: FontWeight.w700,
-                        color: _textPrimary,
-                        height: 1.25,
-                      ),
-                    ),
-                    SizedBox(height: 3.sh),
-                    Text(
-                      _idSummaryLine,
-                      style: TextStyle(
-                        fontSize: 12.ssp,
-                        fontWeight: FontWeight.w400,
-                        color: _textMuted,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 14.sh),
-          for (var i = 0; i < _idChecks.length; i++) ...[
-            _buildCheckedRow(_idChecks[i]),
-            if (i < _idChecks.length - 1) SizedBox(height: 10.sh),
+          for (var i = 0; i < _pickupChecks.length; i++) ...[
+            _buildCheckedRow(_pickupChecks[i]),
+            if (i < _pickupChecks.length - 1) SizedBox(height: 12.sh),
           ],
         ],
       ),
@@ -453,28 +317,13 @@ class _AgeRestrictedDeliveryScreenState
     );
   }
 
-  Widget _buildProofCard() {
-    return _buildSectionCard(
-      title: '4 · Proof of delivery',
-      child: _buildUploadArea(
-        hasPhoto: _hasProofPhoto,
-        photoBytes: _proofPhotoBytes,
-        placeholderText: 'Add photo · required',
-        onTap: () => _selectPhoto(forCpr: false),
-      ),
-    );
-  }
+  Widget _buildUploadArea() {
+    final hasImage = _hasSealedBoxPhoto && _sealedBoxPhotoBytes != null;
 
-  Widget _buildUploadArea({
-    required bool hasPhoto,
-    required Uint8List? photoBytes,
-    required String placeholderText,
-    required VoidCallback onTap,
-  }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: _selectSealedBoxPhoto,
         borderRadius: BorderRadius.circular(14),
         child: CustomPaint(
           painter: ScheduledDashedBorderPainter(
@@ -487,16 +336,15 @@ class _AgeRestrictedDeliveryScreenState
               width: double.infinity,
               height: 96.sh,
               color: _uploadBg,
-              child: hasPhoto && photoBytes != null
+              child: hasImage
                   ? Stack(
                       fit: StackFit.expand,
                       children: [
                         Image.memory(
-                          photoBytes,
+                          _sealedBoxPhotoBytes!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildUploadPlaceholder(
-                            placeholderText,
-                          ),
+                          errorBuilder: (_, __, ___) =>
+                              _buildUploadPlaceholder(),
                         ),
                         Positioned(
                           top: 8.sh,
@@ -522,7 +370,7 @@ class _AgeRestrictedDeliveryScreenState
                         ),
                       ],
                     )
-                  : _buildUploadPlaceholder(placeholderText),
+                  : _buildUploadPlaceholder(),
             ),
           ),
         ),
@@ -530,34 +378,40 @@ class _AgeRestrictedDeliveryScreenState
     );
   }
 
-  Widget _buildUploadPlaceholder(String text) {
+  Widget _buildUploadPlaceholder() {
     return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.sw),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.photo_camera_outlined,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.photo_camera_outlined,
+            color: _textPrimary,
+            size: 20.ssp,
+          ),
+          SizedBox(height: 7.sh),
+          Text(
+            'Add sealed-box photo',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.ssp,
+              fontWeight: FontWeight.w700,
               color: _textPrimary,
-              size: 20.ssp,
+              height: 1.2,
             ),
-            SizedBox(width: 8.sw),
-            Flexible(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13.ssp,
-                  fontWeight: FontWeight.w600,
-                  color: _textPrimary,
-                  height: 1.2,
-                ),
-              ),
+          ),
+          SizedBox(height: 3.sh),
+          Text(
+            'Required',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12.ssp,
+              fontWeight: FontWeight.w400,
+              color: _textMuted,
+              height: 1.2,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -568,50 +422,19 @@ class _AgeRestrictedDeliveryScreenState
       height: 52.sh,
       child: Material(
         color: _headerGreen,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          onTap: _confirmDelivery,
-          borderRadius: BorderRadius.circular(14),
+          onTap: _confirmPickup,
+          borderRadius: BorderRadius.circular(24),
           child: Center(
             child: Text(
-              'Confirm 18+ & complete delivery',
+              'Confirm checks & start delivery',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 15.ssp,
                 fontWeight: FontWeight.w700,
                 color: _white,
-                height: 1.2,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReturnButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 52.sh,
-      child: Material(
-        color: _white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: _returnBorder),
-        ),
-        child: InkWell(
-          onTap: _returnOrder,
-          borderRadius: BorderRadius.circular(14),
-          child: Center(
-            child: Text(
-              'Can\u2019t verify \u2014 return the order',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 15.ssp,
-                fontWeight: FontWeight.w700,
-                color: _returnText,
                 height: 1.2,
               ),
             ),

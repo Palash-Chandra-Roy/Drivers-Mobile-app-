@@ -125,9 +125,13 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
 
   void _openOrdersScheduled(BuildContext context) {
     OrdersNavSignal.openScheduled();
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      RouteNames.mainNavigation,
-      (route) => false,
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    Navigator.of(context).pushNamed(
+      RouteNames.orders,
+      arguments: const {'segment': 'scheduled'},
     );
   }
 

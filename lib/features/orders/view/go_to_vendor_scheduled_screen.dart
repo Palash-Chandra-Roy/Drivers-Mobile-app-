@@ -20,8 +20,8 @@ class GoToVendorScheduledScreen extends StatelessWidget {
   static const Color _cardBorder = Color(0xFFE0E0E0);
   static const Color _pickupBadgeBg = Color(0xFFE8F5E9);
   static const Color _pickupBadgeText = Color(0xFF2E7D32);
-  static const Color _deadlineBg = Color(0xFFFFF8E8);
-  static const Color _deadlineText = Color(0xFF8B6914);
+  static const Color _deadlineBg = Color(0xFFE8F5E9);
+  static const Color _deadlineText = Color(0xFF2E7D32);
   static const Color _reportText = Color(0xFFCFE3D5);
   static const Color _windowGreen = Color(0xFF4DB04F);
 
@@ -302,7 +302,10 @@ class GoToVendorScheduledScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(Icons.access_time_rounded, color: _deadlineText, size: 18.ssp),
+          Text(
+            '🔒',
+            style: TextStyle(fontSize: 14.ssp, height: 1),
+          ),
           SizedBox(width: 10.sw),
           Expanded(
             child: Text(
@@ -328,12 +331,7 @@ class GoToVendorScheduledScreen extends StatelessWidget {
         color: _headerGreen,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: () {
-            final route = _isScheduledVapeOrder(order)
-                ? RouteNames.scheduledVapePickup
-                : RouteNames.scheduledPickup;
-            Navigator.pushNamed(context, route, arguments: order);
-          },
+          onTap: () => _openSecurePickup(context),
           borderRadius: BorderRadius.circular(14),
           child: Center(
             child: Text(
@@ -349,10 +347,39 @@ class GoToVendorScheduledScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _openSecurePickup(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      _pickupRouteFor(order),
+      arguments: order,
+    );
+  }
+}
+
+String _pickupRouteFor(ScheduledDeliveryOrder order) {
+  if (_isScheduledVapeOrder(order)) {
+    return RouteNames.scheduledVapePickup;
+  }
+  if (_isSecurePickupLuxuryOrder(order)) {
+    return RouteNames.securePickupLuxury;
+  }
+  return RouteNames.scheduledPickup;
 }
 
 bool _isScheduledVapeOrder(ScheduledDeliveryOrder order) {
   final category = order.category.toLowerCase();
   final type = order.orderTypeLabel.toLowerCase();
   return category.contains('vape') || type.contains('vape');
+}
+
+bool _isSecurePickupLuxuryOrder(ScheduledDeliveryOrder order) {
+  final category = order.category.toLowerCase();
+  final type = order.orderTypeLabel.toLowerCase();
+  final vendor = order.vendorName.toLowerCase();
+  final status = order.cardStatusLine.toLowerCase();
+  return category.contains('luxury') ||
+      type.contains('luxury') ||
+      vendor.contains('luxury') ||
+      status.contains('restricted');
 }

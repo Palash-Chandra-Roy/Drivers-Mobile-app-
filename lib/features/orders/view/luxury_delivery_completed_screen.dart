@@ -1,85 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
-import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
+import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
-class _DeliveryCompletedScale {
-  static const Size _designSize = Size(390, 844);
-  static Size _screenSize = _designSize;
+/// Delivery completed screen for restricted luxury scheduled deliveries.
+class LuxuryDeliveryCompletedScreen extends StatelessWidget {
+  const LuxuryDeliveryCompletedScreen({
+    super.key,
+    required this.order,
+  });
 
-  static void update(Size size) {
-    if (size.width > 0 && size.height > 0) {
-      _screenSize = size;
-    }
-  }
-
-  static double width(num value) =>
-      value.toDouble() * (_screenSize.width / _designSize.width);
-
-  static double height(num value) =>
-      value.toDouble() * (_screenSize.height / _designSize.height);
-}
-
-extension _DeliveryCompletedUnits on num {
-  double get w => _DeliveryCompletedScale.width(this);
-
-  double get h => _DeliveryCompletedScale.height(this);
-
-  double get sp => _DeliveryCompletedScale.width(this);
-}
-
-/// Local UI-only “Delivery completed” success screen.
-class DeliveryCompletedScreen extends StatelessWidget {
-  const DeliveryCompletedScreen({super.key});
+  final ScheduledDeliveryOrder order;
 
   static const Color _headerGreen = Color(0xFF4DB04F);
   static const Color _white = Color(0xFFFFFFFF);
   static const Color _screenBg = Color(0xFFF4F8F2);
   static const Color _textPrimary = Color(0xFF1A1A1A);
-  static const Color _textMuted = Color(0xFF9E9E9E);
+  static const Color _textMuted = Color(0xFF7B8A7D);
   static const Color _successCircleBg = Color(0xFFE8F5E9);
   static const Color _successCheck = Color(0xFF2E7D32);
   static const Color _summaryBorder = Color(0xFFE0E0E0);
+  static const Color _verifiedText = Color(0xFF4DB04F);
 
-  static const String _earnings = '2.600';
-  static const String _tip = '0.300';
-  static const String _distance = '4.2 km';
-  static const String _time = '22 min';
-  static const String _type = 'Scheduled · Normal';
+  static const ScheduledDeliveryOrder _nextRestrictedLuxuryOrder =
+      ScheduledDeliveryOrder(
+    orderId: '#YJK-...52',
+    vendorName: 'Sharaf DG · Luxury counter',
+    vendorAddress: 'Seef · Bldg 210, Floor 2',
+    category: 'Luxury · high-value',
+    customerName: 'Sara A.',
+    customerPhone: '+973 3300 0000',
+    customerAddress: 'Adliya · Bldg 23, Road 2825',
+    scheduledWindow: 'Today · 6–8 PM',
+    pickupDeadlineNotice:
+        'High-value order. Collect the sealed box, confirm the tamper seal & serial before leaving.',
+    distance: '1.4 km',
+    eta: '~6 min',
+    items: [
+      ScheduledOrderItem(quantity: '1×', name: 'Sealed luxury item'),
+    ],
+    isFragileHighValue: true,
+    paymentType: ScheduledPaymentType.prepaid,
+    earnings: '4.500',
+    tip: '0.000',
+    totalDeliveryTime: '26 min',
+    deliveryDistance: '4.2 km',
+    deliveryEta: '~18 min',
+    orderTypeLabel: 'Scheduled · Luxury',
+    cardRouteLabel: 'Sharaf DG → Adliya',
+    cardStatusLine: 'Restricted high-value delivery',
+  );
 
-  void _handleBottomNavTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
-        return;
-      case 1:
-        OrdersNavSignal.openInstant();
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
-        return;
-      case 2:
-        Navigator.pushNamed(context, RouteNames.earnings);
-        return;
-      case 3:
-        Navigator.pushNamed(context, RouteNames.notifications);
-        return;
-      case 4:
-        Navigator.pushNamed(context, RouteNames.profile);
-        return;
+  String get _orderTypeLabel {
+    if (order.orderTypeLabel.toLowerCase().contains('luxury')) {
+      return order.orderTypeLabel;
     }
+    return 'Scheduled · Luxury';
+  }
+
+  void _findNextOrder(BuildContext context) {
+    Navigator.pushReplacementNamed(
+      context,
+      RouteNames.goToVendorScheduled,
+      arguments: _nextRestrictedLuxuryOrder,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    _DeliveryCompletedScale.update(MediaQuery.sizeOf(context));
+    ScheduledDeliveryScale.update(MediaQuery.sizeOf(context));
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
@@ -90,7 +80,10 @@ class DeliveryCompletedScreen extends StatelessWidget {
         statusBarBrightness: Brightness.light,
       ),
       child: PopScope(
-        canPop: true,
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) Navigator.pop(context);
+        },
         child: Scaffold(
           backgroundColor: _screenBg,
           body: Column(
@@ -101,33 +94,27 @@ class DeliveryCompletedScreen extends StatelessWidget {
               ),
               _buildHeader(context),
               Expanded(
-                child: SingleChildScrollView(
+                child: ListView(
                   padding: EdgeInsets.fromLTRB(
-                    16.w,
-                    24.h,
-                    16.w,
-                    16.h + bottomInset,
+                    16.sw,
+                    24.sh,
+                    16.sw,
+                    24.sh + bottomInset,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildSuccessIcon(),
-                      SizedBox(height: 20.h),
-                      _buildEarningsSection(),
-                      SizedBox(height: 16.h),
-                      _buildSummaryCard(),
-                      SizedBox(height: 32.h),
-                      _buildFindNextOrderButton(),
-                    ],
-                  ),
+                  children: [
+                    _buildSuccessIcon(),
+                    SizedBox(height: 20.sh),
+                    _buildEarningsSection(),
+                    SizedBox(height: 16.sh),
+                    _buildSummaryCard(),
+                    SizedBox(height: 20.sh),
+                    _buildFindNextOrderButton(context),
+                  ],
                 ),
               ),
             ],
           ),
-          bottomNavigationBar: BottomNavBar(
-            currentIndex: 1,
-            onTap: (index) => _handleBottomNavTap(context, index),
-          ),
+          bottomNavigationBar: scheduledBottomNav(context),
         ),
       ),
     );
@@ -137,8 +124,9 @@ class DeliveryCompletedScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: _headerGreen,
-      padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+      padding: EdgeInsets.fromLTRB(12.sw, 10.sh, 16.sw, 10.sh),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Material(
             color: Colors.white.withValues(alpha: 0.22),
@@ -147,23 +135,24 @@ class DeliveryCompletedScreen extends StatelessWidget {
               onTap: () => Navigator.pop(context),
               customBorder: const CircleBorder(),
               child: SizedBox(
-                width: 36.w,
-                height: 36.w,
+                width: 36.sw,
+                height: 36.sw,
                 child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: Colors.white.withValues(alpha: 0.95),
-                  size: 18.sp,
+                  size: 18.ssp,
                 ),
               ),
             ),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: 10.sw),
           Expanded(
             child: Text(
               'Delivery completed 🎉',
-              textAlign: TextAlign.left,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 15.sp,
+                fontSize: 19.ssp,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 height: 1.2,
@@ -178,8 +167,8 @@ class DeliveryCompletedScreen extends StatelessWidget {
   Widget _buildSuccessIcon() {
     return Center(
       child: Container(
-        width: 72.w,
-        height: 72.w,
+        width: 72.sw,
+        height: 72.sw,
         decoration: const BoxDecoration(
           color: _successCircleBg,
           shape: BoxShape.circle,
@@ -187,7 +176,7 @@ class DeliveryCompletedScreen extends StatelessWidget {
         child: Icon(
           Icons.check_rounded,
           color: _successCheck,
-          size: 40.sp,
+          size: 40.ssp,
         ),
       ),
     );
@@ -197,23 +186,22 @@ class DeliveryCompletedScreen extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '+ BHD $_earnings',
+          '+ BHD ${order.earnings}',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 28.sp,
+            fontSize: 26.ssp,
             fontWeight: FontWeight.w700,
             color: _textPrimary,
             height: 1.1,
-            letterSpacing: -0.3,
           ),
         ),
-        SizedBox(height: 6.h),
+        SizedBox(height: 10.sh),
         Text(
-          'Added to today · incl. BHD $_tip tip',
+          'Secure proof of delivery · ID, OTP & signature saved',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w400,
+            fontSize: 12.ssp,
+            fontWeight: FontWeight.w500,
             color: _textMuted,
             height: 1.3,
           ),
@@ -225,7 +213,7 @@ class DeliveryCompletedScreen extends StatelessWidget {
   Widget _buildSummaryCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
+      padding: EdgeInsets.fromLTRB(14.sw, 14.sh, 14.sw, 14.sh),
       decoration: BoxDecoration(
         color: _white,
         borderRadius: BorderRadius.circular(14),
@@ -233,38 +221,50 @@ class DeliveryCompletedScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Distance', _distance),
-          SizedBox(height: 10.h),
-          _buildSummaryRow('Time', _time),
-          SizedBox(height: 10.h),
-          _buildSummaryRow('Type', _type),
+          _buildSummaryRow(
+            'Recipient',
+            '${order.customerName} · ID verified ✓',
+            valueColor: _verifiedText,
+          ),
+          SizedBox(height: 10.sh),
+          _buildSummaryRow(
+            'Proof',
+            'Signature + OTP + photo',
+            valueColor: _verifiedText,
+          ),
+          SizedBox(height: 10.sh),
+          _buildSummaryRow('Type', _orderTypeLabel),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 13.sp,
+            fontSize: 13.ssp,
             fontWeight: FontWeight.w400,
             color: _textMuted,
             height: 1.3,
           ),
         ),
-        SizedBox(width: 12.w),
+        SizedBox(width: 12.sw),
         Expanded(
           child: Text(
             value,
             textAlign: TextAlign.right,
             style: TextStyle(
-              fontSize: 13.sp,
+              fontSize: 13.ssp,
               fontWeight: FontWeight.w700,
-              color: _textPrimary,
+              color: valueColor ?? _textPrimary,
               height: 1.3,
             ),
           ),
@@ -273,21 +273,21 @@ class DeliveryCompletedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFindNextOrderButton() {
+  Widget _buildFindNextOrderButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52.h,
+      height: 52.sh,
       child: Material(
         color: _headerGreen,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(14),
+          onTap: () => _findNextOrder(context),
+          borderRadius: BorderRadius.circular(24),
           child: Center(
             child: Text(
               'Find next order',
               style: TextStyle(
-                fontSize: 15.sp,
+                fontSize: 15.ssp,
                 fontWeight: FontWeight.w700,
                 color: _white,
                 height: 1.2,

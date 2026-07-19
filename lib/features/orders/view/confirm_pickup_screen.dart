@@ -182,8 +182,7 @@ class _ConfirmPickupScreenState extends State<ConfirmPickupScreen> {
   }
 
   void _confirmPickup() {
-    if (!_hasPickupPhoto) return;
-    setState(() => _showDeliverToCustomer = true);
+    Navigator.pushNamed(context, RouteNames.deliverToCustomer);
   }
 
   void _closeDeliverToCustomer() {
@@ -597,7 +596,7 @@ class _ConfirmPickupScreenState extends State<ConfirmPickupScreen> {
           color: _confirmGreen,
           borderRadius: BorderRadius.circular(13),
           child: InkWell(
-            onTap: enabled ? _confirmPickup : null,
+            onTap: _confirmPickup,
             borderRadius: BorderRadius.circular(13),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

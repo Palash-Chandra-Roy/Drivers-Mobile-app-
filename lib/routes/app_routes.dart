@@ -32,19 +32,25 @@ import 'package:yjeek_driver/features/incidents_safety/view/verify_handover_scre
 import 'package:yjeek_driver/features/incidents_safety/view/wrong_missing_items_screen.dart';
 import 'package:yjeek_driver/features/notifications/view/notifications_screen.dart';
 import 'package:yjeek_driver/features/orders/view/accept_order_screen.dart';
+import 'package:yjeek_driver/features/orders/view/cash_complete_delivery_screen.dart';
+import 'package:yjeek_driver/features/orders/view/cash_delivery_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/complete_delivery_screen.dart';
 import 'package:yjeek_driver/features/orders/view/delivery_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/confirm_pickup_screen.dart';
-import 'package:yjeek_driver/features/orders/view/deliver_to_customer_screen.dart';
+import 'package:yjeek_driver/features/orders/view/go_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/go_to_restaurant_screen.dart';
 import 'package:yjeek_driver/features/orders/view/go_to_vendor_scheduled_screen.dart';
+import 'package:yjeek_driver/features/orders/view/luxury_delivery_completed_screen.dart';
+import 'package:yjeek_driver/features/orders/view/restricted_deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_complete_delivery_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
+import 'package:yjeek_driver/features/orders/view/secure_delivery_luxury_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_pickup_screen.dart';
+import 'package:yjeek_driver/features/orders/view/secure_pickup_luxury_screen.dart';
 import 'package:yjeek_driver/features/orders/view/age_restricted_delivery_screen.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_vape_deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/return_the_order_screen.dart';
@@ -195,15 +201,11 @@ class AppRoutes {
           ),
         );
       case RouteNames.deliverToCustomer:
-        return MaterialPageRoute(
-          builder: (context) => DeliverToCustomerScreen(
-            onBack: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              }
-            },
-          ),
-        );
+        return _page(const GoToCustomerScreen());
+      case RouteNames.cashCompleteDelivery:
+        return _page(const CashCompleteDeliveryScreen());
+      case RouteNames.cashDeliveryCompleted:
+        return _page(const CashDeliveryCompletedScreen());
       case RouteNames.completeDelivery:
         return MaterialPageRoute(
           builder: (context) => CompleteDeliveryScreen(
@@ -243,6 +245,11 @@ class AppRoutes {
           settings,
           (order) => ScheduledPickupScreen(order: order),
         );
+      case RouteNames.securePickupLuxury:
+        return _scheduledOrderPage(
+          settings,
+          (order) => SecurePickupLuxuryScreen(order: order),
+        );
       case RouteNames.scheduledVapePickup:
         return _scheduledOrderPage(
           settings,
@@ -252,6 +259,16 @@ class AppRoutes {
         return _scheduledOrderPage(
           settings,
           (order) => ScheduledVapeDeliverToCustomerScreen(order: order),
+        );
+      case RouteNames.restrictedDeliverToCustomer:
+        return _scheduledOrderPage(
+          settings,
+          (order) => RestrictedDeliverToCustomerScreen(order: order),
+        );
+      case RouteNames.secureDeliveryLuxury:
+        return _scheduledOrderPage(
+          settings,
+          (order) => SecureDeliveryLuxuryScreen(order: order),
         );
       case RouteNames.scheduledVapeDeliveryCompleted:
         return _scheduledOrderPage(
@@ -277,6 +294,11 @@ class AppRoutes {
         return _scheduledOrderPage(
           settings,
           (order) => ScheduledDeliveryCompletedScreen(order: order),
+        );
+      case RouteNames.luxuryDeliveryCompleted:
+        return _scheduledOrderPage(
+          settings,
+          (order) => LuxuryDeliveryCompletedScreen(order: order),
         );
       case RouteNames.scheduledCompletedOrderDetail:
         return _scheduledCompletedOrderDetailPage(settings);
@@ -373,11 +395,11 @@ class AppRoutes {
     if (args is Map) {
       return IncidentContextArgs(
         orderId: '${args['orderId'] ?? '#YJK-…41'}',
-        vendorName: '${args['vendorName'] ?? args['restaurantName'] ?? 'The Green Kitchen'}',
+        vendorName:
+            '${args['vendorName'] ?? args['restaurantName'] ?? 'The Green Kitchen'}',
         customerName: '${args['customerName'] ?? 'Sara A.'}',
         area: '${args['area'] ?? 'Adliya'}',
-        address:
-            '${args['address'] ?? 'Adliya · Bldg 23, Road 2825, Flat 82'}',
+        address: '${args['address'] ?? 'Adliya · Bldg 23, Road 2825, Flat 82'}',
         pin: '${args['pin'] ?? 'Pin: 26.2361, 50.5876'}',
       );
     }

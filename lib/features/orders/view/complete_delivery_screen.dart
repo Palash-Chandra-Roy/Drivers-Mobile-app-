@@ -125,7 +125,6 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
   }
 
   void _completeDelivery() {
-    if (!_canComplete) return;
     Navigator.pushNamed(context, RouteNames.deliveryCompleted);
   }
 
@@ -441,7 +440,7 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
           color: _headerGreen,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            onTap: _canComplete ? _completeDelivery : null,
+            onTap: _completeDelivery,
             borderRadius: BorderRadius.circular(14),
             child: Center(
               child: Text(
