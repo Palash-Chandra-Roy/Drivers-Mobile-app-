@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_completed_order_detail.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
@@ -23,7 +24,6 @@ class ScheduledCompletedOrderDetailScreen extends StatelessWidget {
   static const Color _pickupBadgeText = Color(0xFFB86A00);
   static const Color _vapeBadgeText = Color(0xFFB86A00);
   static const Color _subtitleText = Color(0xFFCFE3D5);
-  static const Color _mapBg = Color(0xFFE8EFE4);
   static const Color _windowGreen = Color(0xFF4DB04F);
 
   @override
@@ -155,23 +155,9 @@ class ScheduledCompletedOrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildMapPlaceholder() {
-    return Container(
-      width: double.infinity,
+    return AppGoogleMap(
       height: 200.sh,
-      decoration: BoxDecoration(
-        color: _mapBg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '🗺️ map',
-        style: TextStyle(
-          fontSize: 14.ssp,
-          fontWeight: FontWeight.w500,
-          color: _textMuted,
-          height: 1.2,
-        ),
-      ),
+      borderRadius: BorderRadius.circular(16),
     );
   }
 

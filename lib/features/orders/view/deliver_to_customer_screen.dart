@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/services/map_service.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/orders/view/complete_delivery_screen.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
@@ -31,6 +33,8 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
   static const Color _reportBorder = Color(0xFFF5A623);
   static const Color _reportOrange = Color(0xFFE67E22);
   static const Color _navigateBlack = Color(0xFF1A1A1A);
+
+  static const String _customerAddress = 'Adliya · Bldg 23, Road 2825';
 
   bool _showCompleteDelivery = false;
 
@@ -213,7 +217,7 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
           const SizedBox(height: 10),
           _buildDetailRow('Phone', '+973 3300 0000'),
           const SizedBox(height: 10),
-          _buildDetailRow('Address', 'Adliya · Bldg 23, Road 2825'),
+          _buildDetailRow('Address', _customerAddress),
           const SizedBox(height: 10),
           _buildDetailRow('Window', 'Today · 6–8 PM'),
         ],
@@ -329,7 +333,10 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
               color: _navigateBlack,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () {},
+                onTap: () => MapService.openNavigationOrShowError(
+                  context,
+                  address: _customerAddress,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -384,31 +391,11 @@ class _DeliverToCustomerScreenState extends State<DeliverToCustomerScreen> {
   }
 }
 
-/// Simple map placeholder matching Figma (no maps SDK).
 class _DeliveryMapPlaceholder extends StatelessWidget {
   const _DeliveryMapPlaceholder();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      color: const Color(0xFFE8EFE4),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.map_outlined, color: Color(0xFF9E9E9E), size: 32),
-          SizedBox(height: 6),
-          Text(
-            'map',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF9E9E9E),
-            ),
-          ),
-        ],
-      ),
-    );
+    return const AppGoogleMap(height: 200);
   }
 }

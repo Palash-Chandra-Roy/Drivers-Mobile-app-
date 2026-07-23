@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
@@ -41,9 +42,6 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
   static const Color _green = Color(0xFF4CAF50);
   static const Color _greenDark = Color(0xFF126233);
   static const Color _greenBanner = Color(0xFFE5F5E8);
-  static const Color _mapBase = Color(0xFFE7EFE4);
-  static const Color _mapBlock = Color(0xFFDDE7D9);
-  static const Color _mapRoad = Color(0xFFFFFFFF);
   static const Color _cardBorder = Color(0xFFE1E8E0);
   static const Color _routeCardBg = Color(0xFFF2F8F1);
   static const Color _cashCardBg = Color(0xFFFFEEDB);
@@ -54,7 +52,6 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
   static const Color _blackDot = Color(0xFF1B1B1B);
   static const Color _routeLine = Color(0xFFD4DDD2);
   static const Color _shadow = Color(0x0F000000);
-  static const Color _markerHalo = Color(0x334CAF50);
   static const Color _boltFill = Color(0xFFFFC400);
   static const Color _boltStroke = Color(0xFFFF9800);
 
@@ -283,7 +280,7 @@ class _RequestMapSection extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.hardEdge,
       children: [
-        const Positioned.fill(child: _RequestMap()),
+        const Positioned.fill(child: AppGoogleMap()),
         Positioned(
           left: 14.w,
           right: 20.w,
@@ -291,59 +288,7 @@ class _RequestMapSection extends StatelessWidget {
           height: 51.h,
           child: const _WaitingCard(),
         ),
-        const Positioned.fill(child: _MapMarkerLayer()),
       ],
-    );
-  }
-}
-
-class _MapMarkerLayer extends StatelessWidget {
-  const _MapMarkerLayer();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          children: [
-            Positioned(
-              left: constraints.maxWidth * 0.50 - 33,
-              top: constraints.maxHeight * 0.50 - 33,
-              child: const _GreenMapMarker(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _GreenMapMarker extends StatelessWidget {
-  const _GreenMapMarker();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 66,
-      height: 66,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 66,
-            height: 66,
-            decoration: const BoxDecoration(
-              color: _NewRequestScreenState._markerHalo,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(
-            width: 34,
-            height: 40,
-            child: CustomPaint(painter: _PinPainter()),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -815,18 +760,6 @@ class _CashIcon extends StatelessWidget {
   }
 }
 
-class _RequestMap extends StatelessWidget {
-  const _RequestMap();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CustomPaint(
-      painter: _RequestMapPainter(),
-      child: SizedBox.expand(),
-    );
-  }
-}
-
 class _RequestBoltIcon extends StatelessWidget {
   const _RequestBoltIcon({
     required this.width,
@@ -877,64 +810,6 @@ class _BoltPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _PinPainter extends CustomPainter {
-  const _PinPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _NewRequestScreenState._green
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 4;
-    final path = Path()
-      ..moveTo(size.width * 0.50, size.height * 0.93)
-      ..cubicTo(
-        size.width * 0.34,
-        size.height * 0.73,
-        size.width * 0.16,
-        size.height * 0.57,
-        size.width * 0.16,
-        size.height * 0.34,
-      )
-      ..cubicTo(
-        size.width * 0.16,
-        size.height * 0.15,
-        size.width * 0.31,
-        size.height * 0.05,
-        size.width * 0.50,
-        size.height * 0.05,
-      )
-      ..cubicTo(
-        size.width * 0.69,
-        size.height * 0.05,
-        size.width * 0.84,
-        size.height * 0.15,
-        size.width * 0.84,
-        size.height * 0.34,
-      )
-      ..cubicTo(
-        size.width * 0.84,
-        size.height * 0.57,
-        size.width * 0.66,
-        size.height * 0.73,
-        size.width * 0.50,
-        size.height * 0.93,
-      );
-
-    canvas.drawPath(path, paint);
-    canvas.drawCircle(
-      Offset(size.width * 0.50, size.height * 0.34),
-      size.width * 0.11,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class _CashIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -961,54 +836,6 @@ class _CashIconPainter extends CustomPainter {
       size.height * 0.18,
       paint,
     );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _RequestMapPainter extends CustomPainter {
-  const _RequestMapPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final base = Paint()..color = _NewRequestScreenState._mapBase;
-    final block = Paint()..color = _NewRequestScreenState._mapBlock;
-    final road = Paint()..color = _NewRequestScreenState._mapRoad;
-
-    canvas.drawRect(Offset.zero & size, base);
-
-    void blockRect(double left, double top, double width, double height) {
-      canvas.drawRect(
-        Rect.fromLTWH(
-          size.width * left,
-          size.height * top,
-          size.width * width,
-          size.height * height,
-        ),
-        block,
-      );
-    }
-
-    for (final row in const [
-      (top: 0.000, height: 0.245),
-      (top: 0.285, height: 0.385),
-      (top: 0.710, height: 0.255),
-    ]) {
-      blockRect(0.000, row.top, 0.154, row.height);
-      blockRect(0.190, row.top, 0.196, row.height);
-      blockRect(0.427, row.top, 0.265, row.height);
-      blockRect(0.731, row.top, 0.269, row.height);
-    }
-
-    void roadRect(Rect rect) => canvas.drawRect(rect, road);
-
-    roadRect(Rect.fromLTWH(size.width * 0.154, 0, 14, size.height));
-    roadRect(Rect.fromLTWH(size.width * 0.386, 0, 16, size.height));
-    roadRect(Rect.fromLTWH(size.width * 0.692, 0, 15, size.height));
-    roadRect(Rect.fromLTWH(0, size.height * 0.245, size.width, 16));
-    roadRect(Rect.fromLTWH(0, size.height * 0.670, size.width, 15));
-    roadRect(Rect.fromLTWH(0, size.height * 0.965, size.width, 14));
   }
 
   @override

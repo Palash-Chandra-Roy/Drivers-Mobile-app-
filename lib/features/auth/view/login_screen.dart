@@ -1,6 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/features/auth/model/otp_screen_args.dart';
+import 'package:yjeek_driver/features/auth/service/auth_service.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
+import 'package:yjeek_driver/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,9 +20,13 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _borderColor = Color(0xFFDDE8DD);
   static const Color _placeholderColor = Color(0xFF7D8C7D);
   static const Color _buttonGreen = Color(0xFF4CAF50);
+  static const String _countryCode = '+973';
 
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final _authService = AuthService();
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -26,13 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  String get _phoneDisplay {
-    final digits = _phoneController.text.replaceAll(RegExp(r'\s'), '');
-    if (digits.length == 8) {
-      return '+973 ${digits.substring(0, 4)} ${digits.substring(4)}';
-    }
-    return '+973 3300 0000';
-  }
+  String get _phoneDigits =>
+      _phoneController.text.replaceAll(RegExp(r'\s'), '');
 
   String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -45,13 +48,71 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _onSendCode() {
+  String? _validateCountryCode() {
+    if (_countryCode.trim().isEmpty) {
+      return 'Country code is required';
+    }
+    if (!RegExp(r'^\+\d{1,4}$').hasMatch(_countryCode.trim())) {
+      return 'Enter a valid country code';
+    }
+    return null;
+  }
+
+  Future<void> _onSendCode() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
-    Navigator.pushNamed(
-      context,
-      RouteNames.otp,
-      arguments: _phoneDisplay,
-    );
+
+    final countryCodeError = _validateCountryCode();
+    if (countryCodeError != null) {
+      _showError(countryCodeError);
+      return;
+    }
+
+    final phone = _phoneDigits;
+    final countryCode = _countryCode.trim();
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _authService.sendOtp(
+        phone: phone,
+        countryCode: countryCode,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushNamed(
+        context,
+        RouteNames.otp,
+        arguments: OtpScreenArgs(
+          phone: phone,
+          countryCode: countryCode,
+          expiresInSeconds: result.expiresInSeconds,
+          debugDevCode: kDebugMode ? result.devCode : null,
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showError(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showError('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -140,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text('🇧🇭', style: TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           const Text(
-                            '+973',
+                            _countryCode,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -158,6 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: TextFormField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
+                              enabled: !_isLoading,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -198,23 +260,38 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _onSendCode,
+                        onPressed: _isLoading ? null : _onSendCode,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _buttonGreen,
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor: _buttonGreen.withValues(
+                            alpha: 0.7,
+                          ),
+                          disabledForegroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Send code',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Send code',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ),

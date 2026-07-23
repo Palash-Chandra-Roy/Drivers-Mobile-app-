@@ -1,16 +1,24 @@
+import 'package:permission_handler/permission_handler.dart';
+
 class PermissionService {
   Future<bool> requestLocationPermission() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return true;
+    final status = await Permission.locationWhenInUse.request();
+    return status.isGranted;
   }
 
   Future<bool> requestNotificationPermission() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return true;
+    final status = await Permission.notification.request();
+    return status.isGranted || status.isLimited;
   }
 
   Future<String> getPermissionStatus(String permission) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return 'granted';
+    switch (permission) {
+      case 'location':
+        return (await Permission.locationWhenInUse.status).name;
+      case 'notification':
+        return (await Permission.notification.status).name;
+      default:
+        return 'unknown';
+    }
   }
 }

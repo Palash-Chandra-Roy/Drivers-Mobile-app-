@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/orders/view/go_to_restaurant_screen.dart';
 import 'package:yjeek_driver/features/orders/view/reject_scheduled_order_screen.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
@@ -39,9 +40,6 @@ class OrderDeliveryNewRequestScreen extends StatefulWidget {
   static const Color _textMuted = Color(0xFF6B7B6E);
   static const Color _green = Color(0xFF4CAF50);
   static const Color _greenDark = Color(0xFF0F4D27);
-  static const Color _mapBase = Color(0xFFE7EFE4);
-  static const Color _mapBlock = Color(0xFFDDE7D9);
-  static const Color _mapRoad = Color(0xFFFFFFFF);
   static const Color _routeCardBg = Color(0xFFF2F4F2);
   static const Color _cashCardBg = Color(0xFFFFF0DE);
   static const Color _orange = Color(0xFFF28A0B);
@@ -50,7 +48,6 @@ class OrderDeliveryNewRequestScreen extends StatefulWidget {
   static const Color _handle = Color(0xFFD9D9D9);
   static const Color _blackDot = Color(0xFF1B1B1B);
   static const Color _routeLine = Color(0xFFD0D5D0);
-  static const Color _markerHalo = Color(0x334CAF50);
   static const Color _declineBorder = Color(0xFF8A958A);
   static const Color _declineText = Color(0xFF6B7B6E);
 
@@ -215,64 +212,7 @@ class _DeliveryMapSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned.fill(child: _DeliveryMap()),
-        Positioned.fill(child: _MapMarkerLayer()),
-      ],
-    );
-  }
-}
-
-class _MapMarkerLayer extends StatelessWidget {
-  const _MapMarkerLayer();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Stack(
-          children: [
-            Positioned(
-              left: constraints.maxWidth * 0.50 - 36,
-              top: constraints.maxHeight * 0.48 - 36,
-              child: const _GreenMapMarker(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _GreenMapMarker extends StatelessWidget {
-  const _GreenMapMarker();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 72,
-      height: 72,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: OrderDeliveryNewRequestScreen._markerHalo,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(
-            width: 28,
-            height: 36,
-            child: CustomPaint(painter: _PinPainter()),
-          ),
-        ],
-      ),
-    );
+    return const AppGoogleMap();
   }
 }
 
@@ -708,114 +648,4 @@ class _ActionButtons extends StatelessWidget {
       ],
     );
   }
-}
-
-class _DeliveryMap extends StatelessWidget {
-  const _DeliveryMap();
-
-  @override
-  Widget build(BuildContext context) {
-    return const CustomPaint(
-      painter: _DeliveryMapPainter(),
-      child: SizedBox.expand(),
-    );
-  }
-}
-
-class _PinPainter extends CustomPainter {
-  const _PinPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fill = Paint()
-      ..color = OrderDeliveryNewRequestScreen._green
-      ..style = PaintingStyle.fill;
-
-    final path = Path()
-      ..moveTo(size.width * 0.50, size.height * 0.98)
-      ..cubicTo(
-        size.width * 0.18,
-        size.height * 0.72,
-        size.width * 0.08,
-        size.height * 0.52,
-        size.width * 0.08,
-        size.height * 0.36,
-      )
-      ..cubicTo(
-        size.width * 0.08,
-        size.height * 0.14,
-        size.width * 0.26,
-        size.height * 0.02,
-        size.width * 0.50,
-        size.height * 0.02,
-      )
-      ..cubicTo(
-        size.width * 0.74,
-        size.height * 0.02,
-        size.width * 0.92,
-        size.height * 0.14,
-        size.width * 0.92,
-        size.height * 0.36,
-      )
-      ..cubicTo(
-        size.width * 0.92,
-        size.height * 0.52,
-        size.width * 0.82,
-        size.height * 0.72,
-        size.width * 0.50,
-        size.height * 0.98,
-      )
-      ..close();
-
-    canvas.drawPath(path, fill);
-    canvas.drawCircle(
-      Offset(size.width * 0.50, size.height * 0.34),
-      size.width * 0.18,
-      Paint()..color = OrderDeliveryNewRequestScreen._white,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _DeliveryMapPainter extends CustomPainter {
-  const _DeliveryMapPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final block = Paint()..color = OrderDeliveryNewRequestScreen._mapBlock;
-    final road = Paint()..color = OrderDeliveryNewRequestScreen._mapRoad;
-
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = OrderDeliveryNewRequestScreen._mapBase,
-    );
-
-    const cols = 4;
-    const rows = 3;
-    const roadW = 14.0;
-    final blockW = (size.width - roadW * (cols + 1)) / cols;
-    final blockH = (size.height - roadW * (rows + 1)) / rows;
-
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        final left = roadW + c * (blockW + roadW);
-        final top = roadW + r * (blockH + roadW);
-        canvas.drawRect(Rect.fromLTWH(left, top, blockW, blockH), block);
-      }
-    }
-
-    for (var c = 0; c <= cols; c++) {
-      final x = c * (blockW + roadW);
-      canvas.drawRect(Rect.fromLTWH(x, 0, roadW, size.height), road);
-    }
-    for (var r = 0; r <= rows; r++) {
-      final y = r * (blockH + roadW);
-      canvas.drawRect(Rect.fromLTWH(0, y, size.width, roadW), road);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

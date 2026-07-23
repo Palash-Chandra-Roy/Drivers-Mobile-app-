@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yjeek_driver/core/constants/app_colors.dart';
+import 'package:yjeek_driver/features/auth/model/otp_screen_args.dart';
 import 'package:yjeek_driver/features/auth/view/account_not_registered_screen.dart';
 import 'package:yjeek_driver/features/auth/view/login_screen.dart';
 import 'package:yjeek_driver/features/auth/view/otp_screen.dart';
@@ -96,8 +97,19 @@ class AppRoutes {
       case RouteNames.login:
         return _page(const LoginScreen());
       case RouteNames.otp:
-        final phoneDisplay = settings.arguments as String?;
-        return _page(OtpScreen(phoneDisplay: phoneDisplay));
+        final args = settings.arguments;
+        if (args is OtpScreenArgs) {
+          return _page(
+            OtpScreen(
+              phone: args.phone,
+              countryCode: args.countryCode,
+              expiresInSeconds: args.expiresInSeconds,
+              phoneDisplay: args.phoneDisplay,
+              debugDevCode: args.debugDevCode,
+            ),
+          );
+        }
+        return _page(OtpScreen(phoneDisplay: args as String?));
       case RouteNames.accountNotRegistered:
         return _page(const AccountNotRegisteredScreen());
       case RouteNames.mainNavigation:

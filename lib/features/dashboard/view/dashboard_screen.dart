@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -45,10 +46,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Color _onlineBoltStroke = Color(0xFFFF9800);
   static const Color _onlineScheduledBorder = Color(0xFFE2E8E1);
   static const Color _onlineScheduledIconBg = Color(0xFFEAF9EF);
-  static const Color _onlineMapBase = Color(0xFFE6EFE3);
-  static const Color _onlineMapBlock = Color(0xFFDDE8D8);
-  static const Color _onlineMapBlockSoft = Color(0xFFEAF1E7);
-  static const Color _onlineMapRoad = Color(0xFFFFFFFF);
   static const Color _onlineStatBg = Color(0xFFF3F7F2);
 
   @override
@@ -99,14 +96,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildHeader(context),
+                        _buildHeader(context, dashboard),
                         const SizedBox(height: 12),
-                        _buildScheduledBanner(context),
+                        _buildScheduledBanner(context, dashboard),
                         const SizedBox(height: 8),
                         SizedBox(
                           height: mapHeight,
                           width: double.infinity,
-                          child: const _MapPlaceholder(),
+                          child: const AppGoogleMap(),
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -133,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               const SizedBox(height: 14),
-                              _buildStatsRow(),
+                              _buildStatsRow(dashboard),
                               const SizedBox(height: 14),
                               SizedBox(
                                 width: double.infinity,
@@ -227,16 +224,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildOnlineHeader(context),
+                      _buildOnlineHeader(context, dashboard),
                       const SizedBox(height: 18),
-                      _buildOnlineAutoAcceptCard(context),
+                      _buildOnlineAutoAcceptCard(context, dashboard),
                       const SizedBox(height: 10),
-                      _buildOnlineScheduledCard(context),
+                      _buildOnlineScheduledCard(context, dashboard),
                       const SizedBox(height: 4),
                       SizedBox(
                         width: double.infinity,
                         height: mapHeight,
-                        child: const _OnlineMapPlaceholder(),
+                        child: const AppGoogleMap(),
                       ),
                       _buildOnlineSummary(context, dashboard),
                     ],
@@ -250,7 +247,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOnlineHeader(BuildContext context) {
+  Widget _buildOnlineHeader(
+    BuildContext context,
+    DashboardProvider dashboard,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 8, 0),
       child: SizedBox(
@@ -263,12 +263,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 alignment: Alignment.centerLeft,
                 child: Row(
                   children: [
-                    const _OnlinePill(
+                    _OnlinePill(
                       color: _onlineGreenPill,
                       horizontalPadding: 12,
                       child: Text(
-                        'Ahmed Ali',
-                        style: TextStyle(
+                        dashboard.driverName,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
                           color: _onlineGreenDark,
@@ -334,9 +334,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'BHD 12.500',
-                            style: TextStyle(
+                          Text(
+                            dashboard.walletBalanceLabel,
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: _onlineBg,
@@ -355,32 +355,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onTap: () =>
                   Navigator.pushNamed(context, RouteNames.notifications),
               behavior: HitTestBehavior.opaque,
-              child: const SizedBox(
+              child: SizedBox(
                 width: 32,
                 height: 40,
                 child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.notifications_none_rounded,
                       size: 30,
                       color: Color(0xFF2D211B),
                     ),
-                    Positioned(
-                      right: 1,
-                      top: 7,
-                      child: SizedBox(
-                        width: 9,
-                        height: 9,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: _onlineNotificationRed,
-                            shape: BoxShape.circle,
+                    if (dashboard.hasUnreadNotifications)
+                      const Positioned(
+                        right: 1,
+                        top: 7,
+                        child: SizedBox(
+                          width: 9,
+                          height: 9,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: _onlineNotificationRed,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -391,7 +392,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOnlineAutoAcceptCard(BuildContext context) {
+  Widget _buildOnlineAutoAcceptCard(
+    BuildContext context,
+    DashboardProvider dashboard,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -420,28 +424,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 11),
-            const Expanded(
+            Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Auto-Accept is off',
+                    dashboard.autoAcceptTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: _onlineText,
                       height: 1.05,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    'Turn it on to get orders automatically',
+                    dashboard.autoAcceptSubtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       color: _onlineMuted,
@@ -482,7 +486,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildOnlineScheduledCard(BuildContext context) {
+  Widget _buildOnlineScheduledCard(
+    BuildContext context,
+    DashboardProvider dashboard,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Material(
@@ -521,12 +528,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 11),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '2 scheduled orders today',
+                    dashboard.scheduledOrdersLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: _onlineText,
@@ -594,49 +601,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: SizedBox(
                   height: 62,
                   child: _OnlineHomeStatCard(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.arrow_upward_rounded,
                       size: 21,
                       color: _onlineGreenDark,
                     ),
-                    value: '4',
+                    value: '${dashboard.tripsToday}',
                     label: 'Orders',
                   ),
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: SizedBox(
                   height: 62,
                   child: _OnlineHomeStatCard(
-                    icon: _HomeAssetIcon(
+                    icon: const _HomeAssetIcon(
                       assetPath: _earningsStatIcon,
                       width: 20,
                       height: 14,
                       color: _onlineGreenDark,
                     ),
-                    value: 'BHD 12.50',
+                    value: dashboard.todayEarningsLabel,
                     label: 'Earnings',
                   ),
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: SizedBox(
                   height: 62,
                   child: _OnlineHomeStatCard(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.access_time_rounded,
                       size: 19,
                       color: _onlineGreenDark,
                     ),
-                    value: '3h 20m',
+                    value: dashboard.onlineDurationLabel,
                     label: 'Online',
                   ),
                 ),
@@ -681,7 +688,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(
+    BuildContext context,
+    DashboardProvider dashboard,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 12, 0),
       child: Row(
@@ -692,9 +702,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: _nameChipBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
-              'Ahmed Ali',
-              style: TextStyle(
+            child: Text(
+              dashboard.driverName,
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: _nameChipText,
@@ -737,32 +747,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, RouteNames.notifications),
             behavior: HitTestBehavior.opaque,
-            child: const SizedBox(
+            child: SizedBox(
               width: 40,
               height: 40,
               child: Stack(
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.notifications_none_rounded,
                     size: 26,
                     color: _textDark,
                   ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: SizedBox(
-                      width: 8,
-                      height: 8,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Color(0xFFE53935),
-                          shape: BoxShape.circle,
+                  if (dashboard.hasUnreadNotifications)
+                    const Positioned(
+                      right: 8,
+                      top: 8,
+                      child: SizedBox(
+                        width: 8,
+                        height: 8,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFE53935),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -772,7 +783,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildScheduledBanner(BuildContext context) {
+  Widget _buildScheduledBanner(
+    BuildContext context,
+    DashboardProvider dashboard,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Material(
@@ -815,12 +829,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '2 scheduled orders today',
+                    dashboard.scheduledOrdersLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: _textDark,
@@ -848,50 +862,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatsRow() {
-    return const Row(
+  Widget _buildStatsRow(DashboardProvider dashboard) {
+    return Row(
       children: [
         Expanded(
           child: SizedBox(
             height: 72,
             child: _HomeStatCard(
-              icon: Icon(
+              icon: const Icon(
                 Icons.arrow_upward_rounded,
                 size: 16,
                 color: Color(0xFF4CAF50),
               ),
-              value: '0',
+              value: '${dashboard.tripsToday}',
               label: 'Trips today',
             ),
           ),
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
             height: 72,
             child: _HomeStatCard(
-              icon: _HomeAssetIcon(
+              icon: const _HomeAssetIcon(
                 assetPath: _earningsStatIcon,
                 width: 18,
                 height: 13,
                 color: Color(0xFF4CAF50),
               ),
-              value: 'BHD 0.000',
+              value: dashboard.todayEarningsLabel,
               label: 'Earnings',
             ),
           ),
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
             height: 72,
             child: _HomeStatCard(
-              icon: Icon(
+              icon: const Icon(
                 Icons.access_time_rounded,
                 size: 16,
                 color: Color(0xFF4CAF50),
               ),
-              value: '0h 00m',
+              value: dashboard.onlineDurationLabel,
               label: 'Online',
             ),
           ),
@@ -1138,489 +1152,4 @@ class _HomeStatCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _OnlineMapPlaceholder extends StatelessWidget {
-  const _OnlineMapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final height = constraints.maxHeight;
-
-        Widget zone({
-          required double x,
-          required double y,
-          required double size,
-          required Color color,
-        }) {
-          return Positioned(
-            left: width * x - size / 2,
-            top: height * y - size / 2,
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-          );
-        }
-
-        return Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.hardEdge,
-          children: [
-            const CustomPaint(painter: _OnlineHomeMapPainter()),
-            zone(
-              x: 0.37,
-              y: 0.44,
-              size: 49,
-              color: const Color(0x294CAF50),
-            ),
-            zone(
-              x: 0.70,
-              y: 0.55,
-              size: 49,
-              color: const Color(0x33E5A93A),
-            ),
-            zone(
-              x: 0.27,
-              y: 0.87,
-              size: 49,
-              color: const Color(0x33E5A93A),
-            ),
-            zone(
-              x: 0.83,
-              y: 0.87,
-              size: 49,
-              color: const Color(0x294CAF50),
-            ),
-            Positioned(
-              left: width * 0.50 - 43,
-              top: height * 0.53 - 43,
-              child: const _OnlineLocationMarker(),
-            ),
-            Positioned(
-              left: 16,
-              right: 16,
-              top: 16,
-              child: Container(
-                height: 51,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                decoration: BoxDecoration(
-                  color: _DashboardScreenState._onlineBg,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0F000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: Center(
-                        child: _OnlineBoltIcon(
-                          width: 14,
-                          height: 20,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 13),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Waiting for requests...',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: _DashboardScreenState._onlineText,
-                              height: 1,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            'Stay near busy (orange) areas for more orders',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: _DashboardScreenState._onlineMuted,
-                              height: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _OnlineLocationMarker extends StatelessWidget {
-  const _OnlineLocationMarker();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 86,
-      height: 86,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: Color(0x294CAF50),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(
-            width: 44,
-            height: 52,
-            child: CustomPaint(painter: _OnlineLocationPinPainter()),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OnlineLocationPinPainter extends CustomPainter {
-  const _OnlineLocationPinPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = _DashboardScreenState._onlineGreen
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 5;
-
-    final path = Path()
-      ..moveTo(size.width * 0.50, size.height * 0.92)
-      ..cubicTo(
-        size.width * 0.36,
-        size.height * 0.76,
-        size.width * 0.15,
-        size.height * 0.58,
-        size.width * 0.15,
-        size.height * 0.36,
-      )
-      ..cubicTo(
-        size.width * 0.15,
-        size.height * 0.16,
-        size.width * 0.31,
-        size.height * 0.05,
-        size.width * 0.50,
-        size.height * 0.05,
-      )
-      ..cubicTo(
-        size.width * 0.69,
-        size.height * 0.05,
-        size.width * 0.85,
-        size.height * 0.16,
-        size.width * 0.85,
-        size.height * 0.36,
-      )
-      ..cubicTo(
-        size.width * 0.85,
-        size.height * 0.58,
-        size.width * 0.64,
-        size.height * 0.76,
-        size.width * 0.50,
-        size.height * 0.92,
-      );
-
-    canvas.drawPath(path, paint);
-    canvas.drawCircle(
-      Offset(size.width * 0.50, size.height * 0.36),
-      size.width * 0.12,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _OnlineHomeMapPainter extends CustomPainter {
-  const _OnlineHomeMapPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final base = Paint()..color = _DashboardScreenState._onlineMapBase;
-    final block = Paint()..color = _DashboardScreenState._onlineMapBlock;
-    final softBlock = Paint()
-      ..color = _DashboardScreenState._onlineMapBlockSoft;
-    final road = Paint()..color = _DashboardScreenState._onlineMapRoad;
-
-    canvas.drawRect(Offset.zero & size, base);
-
-    void drawBlock(
-      double left,
-      double top,
-      double width,
-      double height,
-      Paint paint,
-    ) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            size.width * left,
-            size.height * top,
-            size.width * width,
-            size.height * height,
-          ),
-          const Radius.circular(8),
-        ),
-        paint,
-      );
-    }
-
-    drawBlock(0.05, 0.03, 0.18, 0.22, block);
-    drawBlock(0.51, 0.04, 0.18, 0.25, block);
-    drawBlock(0.00, 0.42, 0.16, 0.36, softBlock);
-    drawBlock(0.19, 0.42, 0.20, 0.36, softBlock);
-    drawBlock(0.43, 0.42, 0.26, 0.36, softBlock);
-    drawBlock(0.73, 0.42, 0.27, 0.36, softBlock);
-    drawBlock(0.26, 0.72, 0.18, 0.23, block);
-    drawBlock(0.74, 0.78, 0.18, 0.19, block);
-
-    void drawVerticalRoad(double x, double width) {
-      canvas.drawRect(
-        Rect.fromLTWH(
-          size.width * x - width / 2,
-          0,
-          width,
-          size.height,
-        ),
-        road,
-      );
-    }
-
-    void drawHorizontalRoad(double y, double height) {
-      canvas.drawRect(
-        Rect.fromLTWH(
-          0,
-          size.height * y - height / 2,
-          size.width,
-          height,
-        ),
-        road,
-      );
-    }
-
-    drawVerticalRoad(0.17, 14);
-    drawVerticalRoad(0.405, 16);
-    drawVerticalRoad(0.71, 15);
-    drawHorizontalRoad(0.255, 17);
-    drawHorizontalRoad(0.625, 16);
-    drawHorizontalRoad(0.895, 14);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _MapPlaceholder extends StatelessWidget {
-  const _MapPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const CustomPaint(painter: _HomeMapPainter()),
-        Center(
-          child: Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6B736B).withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: 26,
-              height: 30,
-              child: Stack(
-                alignment: Alignment.topCenter,
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    size: 30,
-                    color: Color(0xFF6B736B),
-                  ),
-                  Positioned(
-                    top: 7,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HomeMapPainter extends CustomPainter {
-  const _HomeMapPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = const Color(0xFFEEF2EA);
-    canvas.drawRect(Offset.zero & size, bg);
-
-    final a = Paint()..color = const Color(0xFFD9E4D4);
-    final b = Paint()..color = const Color(0xFFE3EBE0);
-    final c = Paint()..color = const Color(0xFFD2DED0);
-    final park = Paint()..color = const Color(0xFFDCE8D8);
-
-    final road = Paint()
-      ..color = const Color(0xFFF7F9F5)
-      ..strokeWidth = 15
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final roadThin = Paint()
-      ..color = const Color(0xFFF4F7F2)
-      ..strokeWidth = 10
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final blocks = <(RRect, Paint)>[
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.03, size.height * 0.04,
-              size.width * 0.28, size.height * 0.22),
-          const Radius.circular(8),
-        ),
-        a,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.38, size.height * 0.02,
-              size.width * 0.26, size.height * 0.20),
-          const Radius.circular(8),
-        ),
-        b,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.72, size.height * 0.05,
-              size.width * 0.25, size.height * 0.24),
-          const Radius.circular(8),
-        ),
-        c,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.04, size.height * 0.38,
-              size.width * 0.22, size.height * 0.28),
-          const Radius.circular(8),
-        ),
-        b,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.38, size.height * 0.36,
-              size.width * 0.24, size.height * 0.22),
-          const Radius.circular(8),
-        ),
-        park,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.70, size.height * 0.42,
-              size.width * 0.26, size.height * 0.32),
-          const Radius.circular(8),
-        ),
-        a,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.04, size.height * 0.74,
-              size.width * 0.28, size.height * 0.20),
-          const Radius.circular(8),
-        ),
-        c,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.40, size.height * 0.70,
-              size.width * 0.22, size.height * 0.26),
-          const Radius.circular(8),
-        ),
-        b,
-      ),
-      (
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.70, size.height * 0.80,
-              size.width * 0.24, size.height * 0.16),
-          const Radius.circular(8),
-        ),
-        park,
-      ),
-    ];
-
-    for (final (rrect, paint) in blocks) {
-      canvas.drawRRect(rrect, paint);
-    }
-
-    canvas.drawLine(
-      Offset(0, size.height * 0.30),
-      Offset(size.width, size.height * 0.30),
-      road,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.66),
-      Offset(size.width, size.height * 0.66),
-      roadThin,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.34, 0),
-      Offset(size.width * 0.34, size.height),
-      road,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.66, 0),
-      Offset(size.width * 0.66, size.height),
-      roadThin,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

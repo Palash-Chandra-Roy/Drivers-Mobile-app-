@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/services/map_service.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -25,9 +27,6 @@ class GoToCustomerScreen extends StatelessWidget {
   static const Color _reportBg = Color(0xFFFFF8F3);
   static const Color _reportBorder = Color(0xFFF5A623);
   static const Color _navigateBlack = Color(0xFF1A1A1A);
-  static const Color _mapBlock = Color(0xFFDCE6DF);
-  static const Color _mapRoad = Color(0xFFFFFFFF);
-  static const Color _mapRoute = Color(0xFF4DB04F);
 
   static const String _orderId = '#YJK-...41';
   static const String _customerName = 'Sara A.';
@@ -396,7 +395,10 @@ class GoToCustomerScreen extends StatelessWidget {
               color: _navigateBlack,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () {},
+                onTap: () => MapService.openNavigationOrShowError(
+                  context,
+                  address: _customerAddress,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -457,112 +459,6 @@ class _GoToCustomerMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 390.h(context),
-      width: double.infinity,
-      child: const CustomPaint(
-        painter: _GoToCustomerMapPainter(),
-      ),
-    );
+    return AppGoogleMap(height: 390.h(context));
   }
-}
-
-class _GoToCustomerMapPainter extends CustomPainter {
-  const _GoToCustomerMapPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    const cols = 5;
-    const rows = 4;
-    const roadW = 10.0;
-    final blockW = (w - roadW * (cols + 1)) / cols;
-    final blockH = (h - roadW * (rows + 1)) / rows;
-
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = GoToCustomerScreen._mapRoad,
-    );
-    final blockPaint = Paint()..color = GoToCustomerScreen._mapBlock;
-
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        final left = roadW + c * (blockW + roadW);
-        final top = roadW + r * (blockH + roadW);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(left, top, blockW, blockH),
-            const Radius.circular(2),
-          ),
-          blockPaint,
-        );
-      }
-    }
-
-    final start = Offset(w * 0.18, h * 0.72);
-    final end = Offset(w * 0.78, h * 0.28);
-    final control1 = Offset(w * 0.31, h * 0.58);
-    final control2 = Offset(w * 0.34, h * 0.40);
-    final control3 = Offset(w * 0.47, h * 0.34);
-    final control4 = Offset(w * 0.59, h * 0.22);
-
-    final path = Path()
-      ..moveTo(start.dx, start.dy)
-      ..cubicTo(control1.dx, control1.dy, control2.dx, control2.dy, control3.dx,
-          control3.dy)
-      ..cubicTo(control4.dx, control4.dy, w * 0.70, h * 0.24, end.dx, end.dy);
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = GoToCustomerScreen._mapRoute
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
-        ..strokeCap = StrokeCap.round,
-    );
-
-    _drawPin(canvas, start, GoToCustomerScreen._mapRoute);
-    _drawPin(canvas, end, const Color(0xFF1A1A1A));
-  }
-
-  void _drawPin(Canvas canvas, Offset tip, Color color) {
-    const pinH = 28.0;
-    const pinW = 20.0;
-    final path = Path()
-      ..moveTo(tip.dx, tip.dy)
-      ..quadraticBezierTo(
-        tip.dx - pinW * 0.55,
-        tip.dy - pinH * 0.45,
-        tip.dx - pinW * 0.5,
-        tip.dy - pinH * 0.7,
-      )
-      ..arcToPoint(
-        Offset(tip.dx + pinW * 0.5, tip.dy - pinH * 0.7),
-        radius: const Radius.circular(pinW * 0.5),
-        clockwise: true,
-      )
-      ..quadraticBezierTo(
-        tip.dx + pinW * 0.55,
-        tip.dy - pinH * 0.45,
-        tip.dx,
-        tip.dy,
-      )
-      ..close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(tip.dx, tip.dy - pinH * 0.72),
-      4.5,
-      Paint()..color = Colors.white,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GoToCustomerMapPainter oldDelegate) => false;
 }

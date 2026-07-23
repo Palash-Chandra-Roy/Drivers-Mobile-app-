@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Google Maps API keys (never commit)
+android/local.properties
+ios/Flutter/Secrets.xcconfig
+.env
+.env.*
+!.env.example

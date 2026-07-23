@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -23,7 +24,8 @@ class GoOnlineScreen extends StatelessWidget {
   static const Color _boltOrange = Color(0xFFF59E0B);
   static const Color _waitingBolt = Color(0xFFF59E0B);
   static const Color _statCardBg = Color(0xFFF3F7F3);
-  static const String _scheduledCalendarIcon = 'assets/images/calendar_jul_17.png';
+  static const String _scheduledCalendarIcon =
+      'assets/images/calendar_jul_17.png';
   static const String _earningsStatIcon = 'assets/images/earnings.png';
 
   @override
@@ -334,8 +336,7 @@ class GoOnlineScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: () =>
-              OrdersNavSignal.openScheduled(),
+          onTap: () => OrdersNavSignal.openScheduled(),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             height: 48,
@@ -400,111 +401,18 @@ class GoOnlineScreen extends StatelessWidget {
   }
 
   Widget _buildMapSection() {
-    return SizedBox(
+    return const SizedBox(
       height: 260,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: _OnlineMapPainter()),
-          // Heat zones
-          Positioned(
-            left: 40,
-            top: 90,
-            child: _HeatZone(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.18),
-                size: 70),
-          ),
-          Positioned(
-            right: 50,
-            top: 70,
-            child: _HeatZone(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.20),
-                size: 80),
-          ),
-          Positioned(
-            left: 90,
-            bottom: 50,
-            child: _HeatZone(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.16),
-                size: 64),
-          ),
-          Positioned(
-            right: 80,
-            bottom: 40,
-            child: _HeatZone(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.16),
-                size: 56),
-          ),
-          // Waiting card
+          AppGoogleMap(showRecenterButton: true),
           Positioned(
             left: 16,
             right: 16,
             top: 12,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.bolt, color: _waitingBolt, size: 22),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Waiting for requests...',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: _textDark,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Stay near busy (orange) areas for more orders',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: _subtitleColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Green location pin
-          Center(
-            child: Transform.translate(
-              offset: const Offset(0, 24),
-              child: Container(
-                width: 78,
-                height: 78,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withValues(alpha: 0.18),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.location_on,
-                  size: 36,
-                  color: _buttonGreen,
-                ),
-              ),
-            ),
+            child: _GoOnlineWaitingBanner(),
           ),
         ],
       ),
@@ -572,20 +480,53 @@ class GoOnlineScreen extends StatelessWidget {
   }
 }
 
-class _HeatZone extends StatelessWidget {
-  const _HeatZone({required this.color, required this.size});
-
-  final Color color;
-  final double size;
+class _GoOnlineWaitingBanner extends StatelessWidget {
+  const _GoOnlineWaitingBanner();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.bolt, color: GoOnlineScreen._waitingBolt, size: 22),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Waiting for requests...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: GoOnlineScreen._textDark,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Stay near busy areas for more orders',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: GoOnlineScreen._subtitleColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -653,75 +594,4 @@ class _OnlineStatCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _OnlineMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = const Color(0xFFEEF3EA);
-    canvas.drawRect(Offset.zero & size, bg);
-
-    final blockPaint = Paint()..color = const Color(0xFFDDE8D8);
-    final lightBlockPaint = Paint()..color = const Color(0xFFE8EFE4);
-    final roadPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..strokeWidth = 14
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final blocks = <(Rect, Paint)>[
-      (
-        Rect.fromLTWH(size.width * 0.02, size.height * 0.05, size.width * 0.26,
-            size.height * 0.26),
-        blockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.36, size.height * 0.02, size.width * 0.28,
-            size.height * 0.24),
-        lightBlockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.72, size.height * 0.08, size.width * 0.24,
-            size.height * 0.28),
-        blockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.04, size.height * 0.42, size.width * 0.24,
-            size.height * 0.38),
-        lightBlockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.36, size.height * 0.40, size.width * 0.28,
-            size.height * 0.28),
-        blockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.72, size.height * 0.50, size.width * 0.24,
-            size.height * 0.36),
-        lightBlockPaint
-      ),
-      (
-        Rect.fromLTWH(size.width * 0.36, size.height * 0.76, size.width * 0.28,
-            size.height * 0.20),
-        lightBlockPaint
-      ),
-    ];
-
-    for (final (rect, paint) in blocks) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, const Radius.circular(10)),
-        paint,
-      );
-    }
-
-    canvas.drawLine(Offset(0, size.height * 0.36),
-        Offset(size.width, size.height * 0.36), roadPaint);
-    canvas.drawLine(Offset(size.width * 0.32, 0),
-        Offset(size.width * 0.32, size.height), roadPaint);
-    canvas.drawLine(Offset(size.width * 0.68, 0),
-        Offset(size.width * 0.68, size.height), roadPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/services/map_service.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -81,6 +82,11 @@ class ScheduledDeliverToCustomerScreen extends StatelessWidget {
                                 'orderId': order.orderId,
                                 'customerName': order.customerName,
                               },
+                            ),
+                            onNavigate: () =>
+                                MapService.openNavigationOrShowError(
+                              context,
+                              address: order.customerAddress,
                             ),
                           ),
                           SizedBox(height: 12.sh),
