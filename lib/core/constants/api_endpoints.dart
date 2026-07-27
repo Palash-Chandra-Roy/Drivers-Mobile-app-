@@ -11,4 +11,5 @@ class ApiEndpoints {
 
   // Home
   static const String home = '/drivers/home';
+  static const String goOffline = '/drivers/go-offline';
 }

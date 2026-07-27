@@ -89,12 +89,43 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   Future<void> toggleOnlineStatus() async {
+    if (_isOnline) {
+      await goOffline();
+      return;
+    }
+
+    // Go-online API is not wired yet; keep local toggle for now.
     _isLoading = true;
     notifyListeners();
     await Future.delayed(const Duration(milliseconds: 500));
-    _isOnline = !_isOnline;
+    _isOnline = true;
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> goOffline() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final home = await _dashboardService.goOffline();
+      _home = home;
+      _isOnline = home.driver.isOnlineStatus;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _error = 'Failed to go offline';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   void setOnline(bool value) {
