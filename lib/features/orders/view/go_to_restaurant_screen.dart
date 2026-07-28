@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/services/map_service.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/features/orders/view/confirm_pickup_screen.dart';
@@ -331,7 +333,10 @@ class GoToRestaurantScreen extends StatelessWidget {
               color: _navigateBlack,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () {},
+                onTap: () => MapService.openNavigationOrShowError(
+                  context,
+                  address: args.pickupLocation,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -395,149 +400,12 @@ class GoToRestaurantScreen extends StatelessWidget {
   }
 }
 
-/// Stylized map placeholder matching Figma (no maps SDK).
+/// Real Google Map for pickup navigation.
 class _PickupMapPlaceholder extends StatelessWidget {
   const _PickupMapPlaceholder();
 
-  static const Color _block = Color(0xFFDCE6DF);
-  static const Color _road = Color(0xFFFFFFFF);
-  static const Color _route = Color(0xFF4DB04F);
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 390.h(context),
-      width: double.infinity,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return ColoredBox(
-            color: _road,
-            child: CustomPaint(
-              size: Size(constraints.maxWidth, constraints.maxHeight),
-              painter: const _MapPainter(
-                blockColor: _block,
-                roadColor: _road,
-                routeColor: _route,
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    return AppGoogleMap(height: 390.h(context));
   }
-}
-
-class _MapPainter extends CustomPainter {
-  const _MapPainter({
-    required this.blockColor,
-    required this.roadColor,
-    required this.routeColor,
-  });
-
-  final Color blockColor;
-  final Color roadColor;
-  final Color routeColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    const cols = 5;
-    const rows = 4;
-    const roadW = 10.0;
-    final blockW = (w - roadW * (cols + 1)) / cols;
-    final blockH = (h - roadW * (rows + 1)) / rows;
-
-    final blockPaint = Paint()..color = blockColor;
-    canvas.drawRect(Offset.zero & size, Paint()..color = roadColor);
-
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        final left = roadW + c * (blockW + roadW);
-        final top = roadW + r * (blockH + roadW);
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(left, top, blockW, blockH),
-            const Radius.circular(2),
-          ),
-          blockPaint,
-        );
-      }
-    }
-
-    final start = Offset(w * 0.18, h * 0.72);
-    final end = Offset(w * 0.78, h * 0.28);
-    final control1 = Offset(w * 0.28, h * 0.35);
-    final control2 = Offset(w * 0.55, h * 0.78);
-
-    final path = Path()
-      ..moveTo(start.dx, start.dy)
-      ..cubicTo(
-        control1.dx,
-        control1.dy,
-        control2.dx,
-        control2.dy,
-        end.dx,
-        end.dy,
-      );
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = routeColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 5.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    _drawPin(canvas, start, const Color(0xFF4DB04F));
-    _drawPin(canvas, end, const Color(0xFF1A1A1A));
-  }
-
-  void _drawPin(Canvas canvas, Offset tip, Color color) {
-    const pinH = 28.0;
-    const pinW = 20.0;
-
-    final path = Path()
-      ..moveTo(tip.dx, tip.dy)
-      ..quadraticBezierTo(
-        tip.dx - pinW * 0.55,
-        tip.dy - pinH * 0.45,
-        tip.dx - pinW * 0.5,
-        tip.dy - pinH * 0.7,
-      )
-      ..arcToPoint(
-        Offset(tip.dx + pinW * 0.5, tip.dy - pinH * 0.7),
-        radius: const Radius.circular(pinW * 0.5),
-        clockwise: true,
-      )
-      ..quadraticBezierTo(
-        tip.dx + pinW * 0.55,
-        tip.dy - pinH * 0.45,
-        tip.dx,
-        tip.dy,
-      )
-      ..close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.fill,
-    );
-
-    canvas.drawCircle(
-      Offset(tip.dx, tip.dy - pinH * 0.72),
-      4.5,
-      Paint()..color = Colors.white,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _MapPainter oldDelegate) =>
-      oldDelegate.blockColor != blockColor ||
-      oldDelegate.roadColor != roadColor ||
-      oldDelegate.routeColor != routeColor;
 }

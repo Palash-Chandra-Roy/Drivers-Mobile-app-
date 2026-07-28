@@ -31,7 +31,8 @@ class SettingsScreen extends StatelessWidget {
           ),
           Card(
             child: SwitchListTile(
-              secondary: const Icon(Icons.notifications_outlined, color: AppColors.primary),
+              secondary: const Icon(Icons.notifications_outlined,
+                  color: AppColors.primary),
               title: const Text('Notifications'),
               subtitle: const Text('Push notifications'),
               value: settings.notificationsEnabled,
@@ -42,19 +43,35 @@ class SettingsScreen extends StatelessWidget {
           ),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.primary),
+              leading: const Icon(Icons.privacy_tip_outlined,
+                  color: AppColors.primary),
               title: const Text(AppStrings.privacyPolicy),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.pushNamed(context, RouteNames.privacyPolicy),
+              onTap: () =>
+                  Navigator.pushNamed(context, RouteNames.privacyPolicy),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined,
+                  color: AppColors.primary),
+              title: const Text('Open-source licenses'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: 'Yjeek Driver',
+              ),
             ),
           ),
           Card(
             child: ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
-              title: Text(AppStrings.logout, style: const TextStyle(color: AppColors.error)),
+              title: Text(AppStrings.logout,
+                  style: const TextStyle(color: AppColors.error)),
               onTap: () {
                 context.read<AuthProvider>().logout();
-                Navigator.pushNamedAndRemoveUntil(context, RouteNames.login, (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                    context, RouteNames.login, (route) => false);
               },
             ),
           ),

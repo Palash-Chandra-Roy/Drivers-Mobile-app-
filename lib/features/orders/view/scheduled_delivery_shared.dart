@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -52,26 +53,7 @@ class ScheduledMapPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      color: const Color(0xFFE8EFE4),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.map_outlined, color: Color(0xFF9E9E9E), size: 32),
-          SizedBox(height: 6),
-          Text(
-            'map',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF9E9E9E),
-            ),
-          ),
-        ],
-      ),
-    );
+    return const AppGoogleMap(height: 200);
   }
 }
 
@@ -123,7 +105,10 @@ class ScheduledDashedBorderPainter extends CustomPainter {
       oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
-Widget scheduledReportNavigateRow({VoidCallback? onReport}) {
+Widget scheduledReportNavigateRow({
+  VoidCallback? onReport,
+  VoidCallback? onNavigate,
+}) {
   const orange = Color(0xFFE67E22);
   return Row(
     children: [
@@ -165,20 +150,24 @@ Widget scheduledReportNavigateRow({VoidCallback? onReport}) {
           child: Material(
             color: const Color(0xFF1A1A1A),
             borderRadius: BorderRadius.circular(14),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.near_me, color: Colors.white, size: 18),
-                SizedBox(width: 6),
-                Text(
-                  'Navigate',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+            child: InkWell(
+              onTap: onNavigate,
+              borderRadius: BorderRadius.circular(14),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.near_me, color: Colors.white, size: 18),
+                  SizedBox(width: 6),
+                  Text(
+                    'Navigate',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

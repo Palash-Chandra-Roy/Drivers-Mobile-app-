@@ -1,13 +1,31 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:yjeek_driver/features/auth/model/account_not_registered_exception.dart';
+import 'package:yjeek_driver/features/auth/model/otp_screen_args.dart';
+import 'package:yjeek_driver/features/auth/provider/auth_provider.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key, this.phoneDisplay});
+  const OtpScreen({
+    super.key,
+    this.phoneDisplay,
+    this.phone,
+    this.countryCode,
+    this.expiresInSeconds,
+    this.debugDevCode,
+  });
 
   final String? phoneDisplay;
+  final String? phone;
+  final String? countryCode;
+  final int? expiresInSeconds;
+
+  /// Debug-only OTP from API. Never shown in release builds.
+  final String? debugDevCode;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -19,7 +37,6 @@ class _OtpScreenState extends State<OtpScreen> {
   static const Color _subtitleColor = Color(0xFF6B7C6B);
   static const Color _errorRed = Color(0xFFD71920);
   static const Color _buttonGreen = Color(0xFF4CAF50);
-  static const String _correctOtp = '5290';
   static const String _defaultPhoneDisplay = '+973 3300 0000';
 
   static const int _otpLength = 4;
@@ -28,7 +45,11 @@ class _OtpScreenState extends State<OtpScreen> {
   late final List<FocusNode> _focusNodes;
 
   bool _isWrongCode = false;
-  int _resendSeconds = 24;
+  bool _isLoading = false;
+  bool _isResending = false;
+  String _errorHeading = 'Incorrect code — please try again';
+  late int _expiresInSeconds;
+  late int _resendSeconds;
   Timer? _resendTimer;
 
   @override
@@ -36,9 +57,12 @@ class _OtpScreenState extends State<OtpScreen> {
     super.initState();
     _controllers = List.generate(_otpLength, (_) => TextEditingController());
     _focusNodes = List.generate(_otpLength, (_) => FocusNode());
+    _expiresInSeconds = widget.expiresInSeconds ?? 24;
     _startResendTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNodes[0].requestFocus();
+      if (!mounted) return;
+      _focusNodes[0].requestFocus();
+      _showDebugDevCode(widget.debugDevCode);
     });
   }
 
@@ -54,7 +78,22 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  String get _phoneText => widget.phoneDisplay ?? _defaultPhoneDisplay;
+  String get _phoneText {
+    if (widget.phoneDisplay != null && widget.phoneDisplay!.isNotEmpty) {
+      return widget.phoneDisplay!;
+    }
+    if (widget.phone != null && widget.countryCode != null) {
+      return OtpScreenArgs(
+        phone: widget.phone!,
+        countryCode: widget.countryCode!,
+        expiresInSeconds: widget.expiresInSeconds ?? 0,
+      ).phoneDisplay;
+    }
+    return _defaultPhoneDisplay;
+  }
+
+  String? get _phone => widget.phone;
+  String? get _countryCode => widget.countryCode;
 
   String get _otpCode => _controllers.map((c) => c.text).join();
 
@@ -65,9 +104,12 @@ class _OtpScreenState extends State<OtpScreen> {
     return _otpLength - 1;
   }
 
-  void _startResendTimer() {
+  void _startResendTimer({int? expiresInSeconds}) {
+    if (expiresInSeconds != null) {
+      _expiresInSeconds = expiresInSeconds;
+    }
     _resendTimer?.cancel();
-    _resendSeconds = 24;
+    _resendSeconds = _expiresInSeconds;
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -100,7 +142,12 @@ class _OtpScreenState extends State<OtpScreen> {
       _focusNodes[index - 1].requestFocus();
     }
 
-    setState(() {});
+    setState(() {
+      if (_isWrongCode) {
+        _isWrongCode = false;
+        _errorHeading = 'Incorrect code — please try again';
+      }
+    });
   }
 
   void _focusActiveBox() {
@@ -110,33 +157,143 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
-  void _onVerify() {
-    final otp = _otpCode;
+  void _showWrongCode([String? message]) {
+    setState(() {
+      _isWrongCode = true;
+      _errorHeading = (message != null && message.trim().isNotEmpty)
+          ? message.trim()
+          : 'Incorrect code — please try again';
+    });
+    _focusActiveBox();
+  }
 
-    if (otp.length < _otpLength || otp != _correctOtp) {
-      setState(() => _isWrongCode = true);
-      _focusActiveBox();
+  Future<void> _onVerify() async {
+    if (_isLoading) return;
+
+    final otp = _otpCode;
+    if (otp.length < _otpLength) {
+      _showWrongCode('Enter the complete 4-digit code');
       return;
     }
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      RouteNames.mainNavigation,
-      (route) => false,
-    );
+    final phone = _phone;
+    final countryCode = _countryCode;
+    if (phone == null ||
+        phone.isEmpty ||
+        countryCode == null ||
+        countryCode.isEmpty) {
+      _showWrongCode('Phone number is missing. Please go back and try again.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _isWrongCode = false;
+    });
+
+    try {
+      final result = await context.read<AuthProvider>().verifyOtp(
+            phone: phone,
+            countryCode: countryCode,
+            code: otp,
+          );
+
+      if (!mounted) return;
+
+      if (result == null) {
+        final error = context.read<AuthProvider>().error;
+        _showWrongCode(error);
+        return;
+      }
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        RouteNames.mainNavigation,
+        (route) => false,
+      );
+    } on AccountNotRegisteredException {
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        RouteNames.accountNotRegistered,
+        (route) => false,
+        arguments: _phoneText,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showWrongCode('Verification failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
-  void _onResendCode() {
-    if (_isWrongCode) {
+  Future<void> _onResendCode() async {
+    if (_isLoading || _isResending || !_isWrongCode) return;
+
+    final phone = _phone;
+    final countryCode = _countryCode;
+    if (phone == null ||
+        phone.isEmpty ||
+        countryCode == null ||
+        countryCode.isEmpty) {
+      _showSnackBar('Phone number is missing. Please go back and try again.');
+      return;
+    }
+
+    setState(() => _isResending = true);
+
+    try {
+      final result = await context.read<AuthProvider>().resendOtp(
+            phone: phone,
+            countryCode: countryCode,
+          );
+
+      if (!mounted) return;
+
+      if (result == null) {
+        final error = context.read<AuthProvider>().error;
+        _showSnackBar(error ?? 'Failed to resend OTP');
+        return;
+      }
+
       for (final controller in _controllers) {
         controller.clear();
       }
       setState(() {
         _isWrongCode = false;
+        _errorHeading = 'Incorrect code — please try again';
       });
-      _startResendTimer();
+      _startResendTimer(expiresInSeconds: result.expiresInSeconds);
       _focusNodes[0].requestFocus();
+      _showDebugDevCode(result.devCode);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Failed to resend OTP. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
     }
+  }
+
+  void _showDebugDevCode(String? devCode) {
+    if (!kDebugMode) return;
+    if (devCode == null || devCode.trim().isEmpty) return;
+    _showSnackBar('Dev OTP: ${devCode.trim()}');
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 8),
+        ),
+      );
   }
 
   @override
@@ -155,7 +312,8 @@ class _OtpScreenState extends State<OtpScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final horizontalPadding = 20.0;
-              final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+              final availableWidth =
+                  constraints.maxWidth - (horizontalPadding * 2);
               const spacing = 14.0;
               final boxWidth =
                   ((availableWidth - (spacing * (_otpLength - 1))) / _otpLength)
@@ -170,11 +328,13 @@ class _OtpScreenState extends State<OtpScreen> {
                       child: Row(
                         children: [
                           GestureDetector(
-                            onTap: () {
-                              if (Navigator.canPop(context)) {
-                                Navigator.pop(context);
-                              }
-                            },
+                            onTap: _isLoading
+                                ? null
+                                : () {
+                                    if (Navigator.canPop(context)) {
+                                      Navigator.pop(context);
+                                    }
+                                  },
                             child: const Icon(
                               Icons.arrow_back_ios_new,
                               size: 24,
@@ -198,7 +358,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
                         _isWrongCode
-                            ? 'Incorrect code — please try again'
+                            ? _errorHeading
                             : 'Enter the 4-digit code',
                         style: TextStyle(
                           fontSize: 22,
@@ -231,6 +391,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             controller: _controllers[index],
                             focusNode: _focusNodes[index],
                             isActive: index == activeIndex,
+                            enabled: !_isLoading && !_isResending,
                             onChanged: (value) => _onOtpChanged(index, value),
                           );
                         }),
@@ -250,13 +411,15 @@ class _OtpScreenState extends State<OtpScreen> {
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: _onResendCode,
-                                  child: const Text(
-                                    'Resend code',
+                                  onTap: _isResending ? null : _onResendCode,
+                                  child: Text(
+                                    _isResending ? 'Sending...' : 'Resend code',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: _buttonGreen,
+                                      color: _isResending
+                                          ? _buttonGreen.withValues(alpha: 0.6)
+                                          : _buttonGreen,
                                     ),
                                   ),
                                 ),
@@ -289,23 +452,37 @@ class _OtpScreenState extends State<OtpScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _onVerify,
+                          onPressed: (_isLoading || _isResending) ? null : _onVerify,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _buttonGreen,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                _buttonGreen.withValues(alpha: 0.7),
+                            disabledForegroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Verify & continue',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Verify & continue',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -327,12 +504,14 @@ class _OtpBox extends StatelessWidget {
     required this.focusNode,
     required this.isActive,
     required this.onChanged,
+    this.enabled = true,
   });
 
   final double width;
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isActive;
+  final bool enabled;
   final ValueChanged<String> onChanged;
 
   static const Color _textDark = Color(0xFF1E1E1E);
@@ -358,6 +537,7 @@ class _OtpBox extends StatelessWidget {
         child: TextField(
           controller: controller,
           focusNode: focusNode,
+          enabled: enabled,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           textAlignVertical: TextAlignVertical.center,

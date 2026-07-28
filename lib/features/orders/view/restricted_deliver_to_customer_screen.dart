@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:yjeek_driver/core/services/map_service.dart';
+import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_order.dart';
 import 'package:yjeek_driver/features/orders/view/scheduled_delivery_shared.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -20,7 +22,6 @@ class RestrictedDeliverToCustomerScreen extends StatelessWidget {
   static const Color _textMuted = Color(0xFF9E9E9E);
   static const Color _cardBorder = Color(0xFFE0E0E0);
   static const Color _subtitleText = Color(0xFFCFE3D5);
-  static const Color _mapBg = Color(0xFFE1EBE1);
   static const Color _securityBg = Color(0xFFE8F5E9);
   static const Color _securityText = Color(0xFF2E7D32);
   static const Color _orange = Color(0xFFE67E22);
@@ -181,23 +182,9 @@ class RestrictedDeliverToCustomerScreen extends StatelessWidget {
   }
 
   Widget _buildMapPlaceholder() {
-    return Container(
-      width: double.infinity,
+    return AppGoogleMap(
       height: 200.sh,
-      decoration: BoxDecoration(
-        color: _mapBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '🗺️ map',
-        style: TextStyle(
-          fontSize: 13.ssp,
-          fontWeight: FontWeight.w500,
-          color: _textPrimary,
-          height: 1.2,
-        ),
-      ),
+      borderRadius: BorderRadius.circular(14),
     );
   }
 
@@ -346,7 +333,10 @@ class RestrictedDeliverToCustomerScreen extends StatelessWidget {
               color: _textPrimary,
               borderRadius: BorderRadius.circular(14),
               child: InkWell(
-                onTap: () {},
+                onTap: () => MapService.openNavigationOrShowError(
+                  context,
+                  address: order.customerAddress,
+                ),
                 borderRadius: BorderRadius.circular(14),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
