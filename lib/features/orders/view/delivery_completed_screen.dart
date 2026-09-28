@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
+import 'package:yjeek_driver/features/orders/model/job_complete_model.dart';
+import 'package:yjeek_driver/features/orders/provider/order_provider.dart';
 import 'package:yjeek_driver/navigation/bottom_nav_bar.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
@@ -29,7 +33,7 @@ extension _DeliveryCompletedUnits on num {
   double get sp => _DeliveryCompletedScale.width(this);
 }
 
-/// Local UI-only “Delivery completed” success screen.
+/// Delivery completed success screen — shows `POST .../complete` summary.
 class DeliveryCompletedScreen extends StatelessWidget {
   const DeliveryCompletedScreen({super.key});
 
@@ -42,28 +46,27 @@ class DeliveryCompletedScreen extends StatelessWidget {
   static const Color _successCheck = Color(0xFF2E7D32);
   static const Color _summaryBorder = Color(0xFFE0E0E0);
 
-  static const String _earnings = '2.600';
-  static const String _tip = '0.300';
-  static const String _distance = '4.2 km';
-  static const String _time = '22 min';
-  static const String _type = 'Scheduled · Normal';
+  void _leaveAfterComplete(BuildContext context, {bool openInstant = false}) {
+    if (openInstant) {
+      OrdersNavSignal.openInstant();
+    }
+    OrdersNavSignal.closeEmbeddedDeliverFlow();
+    context.read<OrderProvider>().loadInstantJobsBoard();
+    context.read<DashboardProvider>().loadDashboard();
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      RouteNames.mainNavigation,
+      (route) => false,
+    );
+  }
 
   void _handleBottomNavTap(BuildContext context, int index) {
     switch (index) {
       case 0:
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
+        _leaveAfterComplete(context);
         return;
       case 1:
-        OrdersNavSignal.openInstant();
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          RouteNames.mainNavigation,
-          (route) => false,
-        );
+        _leaveAfterComplete(context, openInstant: true);
         return;
       case 2:
         Navigator.pushNamed(context, RouteNames.earnings);
@@ -77,11 +80,29 @@ class DeliveryCompletedScreen extends StatelessWidget {
     }
   }
 
+  void _findNextOrder(BuildContext context) {
+    _leaveAfterComplete(context, openInstant: true);
+  }
+
+  JobCompleteSummary? _summary(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is JobCompleteResult) return args.summary;
+    if (args is JobCompleteSummary) return args;
+    return context.watch<OrderProvider>().lastCompleteResult?.summary;
+  }
+
   @override
   Widget build(BuildContext context) {
     _DeliveryCompletedScale.update(MediaQuery.sizeOf(context));
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final summary = _summary(context);
+
+    final earnings = summary?.earningsAddedLabel ?? '0.000';
+    final tip = summary?.tipAmountLabel ?? '0.000';
+    final distance = summary?.distanceLabel ?? '—';
+    final time = summary?.durationLabel ?? '—';
+    final type = summary?.deliveryTypeLabel ?? '—';
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -113,11 +134,15 @@ class DeliveryCompletedScreen extends StatelessWidget {
                     children: [
                       _buildSuccessIcon(),
                       SizedBox(height: 20.h),
-                      _buildEarningsSection(),
+                      _buildEarningsSection(earnings: earnings, tip: tip),
                       SizedBox(height: 16.h),
-                      _buildSummaryCard(),
+                      _buildSummaryCard(
+                        distance: distance,
+                        time: time,
+                        type: type,
+                      ),
                       SizedBox(height: 32.h),
-                      _buildFindNextOrderButton(),
+                      _buildFindNextOrderButton(context),
                     ],
                   ),
                 ),
@@ -144,7 +169,7 @@ class DeliveryCompletedScreen extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.22),
             shape: const CircleBorder(),
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () => _findNextOrder(context),
               customBorder: const CircleBorder(),
               child: SizedBox(
                 width: 36.w,
@@ -193,11 +218,14 @@ class DeliveryCompletedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEarningsSection() {
+  Widget _buildEarningsSection({
+    required String earnings,
+    required String tip,
+  }) {
     return Column(
       children: [
         Text(
-          '+ BHD $_earnings',
+          '+ BHD $earnings',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 28.sp,
@@ -209,7 +237,9 @@ class DeliveryCompletedScreen extends StatelessWidget {
         ),
         SizedBox(height: 6.h),
         Text(
-          'Added to today · incl. BHD $_tip tip',
+          (double.tryParse(tip) ?? 0) > 0
+              ? 'Added to today · incl. BHD $tip tip'
+              : 'Added to today',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13.sp,
@@ -222,7 +252,11 @@ class DeliveryCompletedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard({
+    required String distance,
+    required String time,
+    required String type,
+  }) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
@@ -233,11 +267,11 @@ class DeliveryCompletedScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Distance', _distance),
+          _buildSummaryRow('Distance', distance),
           SizedBox(height: 10.h),
-          _buildSummaryRow('Time', _time),
+          _buildSummaryRow('Time', time),
           SizedBox(height: 10.h),
-          _buildSummaryRow('Type', _type),
+          _buildSummaryRow('Type', type),
         ],
       ),
     );
@@ -273,7 +307,7 @@ class DeliveryCompletedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFindNextOrderButton() {
+  Widget _buildFindNextOrderButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 52.h,
@@ -281,7 +315,7 @@ class DeliveryCompletedScreen extends StatelessWidget {
         color: _headerGreen,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: () {},
+          onTap: () => _findNextOrder(context),
           borderRadius: BorderRadius.circular(14),
           child: Center(
             child: Text(

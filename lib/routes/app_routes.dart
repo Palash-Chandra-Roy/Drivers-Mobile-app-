@@ -4,6 +4,7 @@ import 'package:yjeek_driver/features/auth/model/otp_screen_args.dart';
 import 'package:yjeek_driver/features/auth/view/account_not_registered_screen.dart';
 import 'package:yjeek_driver/features/auth/view/login_screen.dart';
 import 'package:yjeek_driver/features/auth/view/otp_screen.dart';
+import 'package:yjeek_driver/l10n/l10n.dart';
 import 'package:yjeek_driver/features/chat/view/dispatch_chat_screen.dart';
 import 'package:yjeek_driver/features/dashboard/view/cant_go_online_screen.dart';
 import 'package:yjeek_driver/features/dashboard/view/dashboard_screen.dart';
@@ -38,7 +39,7 @@ import 'package:yjeek_driver/features/orders/view/cash_delivery_completed_screen
 import 'package:yjeek_driver/features/orders/view/complete_delivery_screen.dart';
 import 'package:yjeek_driver/features/orders/view/delivery_completed_screen.dart';
 import 'package:yjeek_driver/features/orders/view/confirm_pickup_screen.dart';
-import 'package:yjeek_driver/features/orders/view/go_to_customer_screen.dart';
+import 'package:yjeek_driver/features/orders/view/deliver_to_customer_screen.dart';
 import 'package:yjeek_driver/features/orders/view/go_to_restaurant_screen.dart';
 import 'package:yjeek_driver/features/orders/view/go_to_vendor_scheduled_screen.dart';
 import 'package:yjeek_driver/features/orders/view/luxury_delivery_completed_screen.dart';
@@ -111,7 +112,17 @@ class AppRoutes {
         }
         return _page(OtpScreen(phoneDisplay: args as String?));
       case RouteNames.accountNotRegistered:
-        return _page(const AccountNotRegisteredScreen());
+        final phoneDisplay = settings.arguments is String
+            ? (settings.arguments as String).trim()
+            : null;
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => AccountNotRegisteredScreen(
+            phoneDisplay: (phoneDisplay != null && phoneDisplay.isNotEmpty)
+                ? phoneDisplay
+                : null,
+          ),
+        );
       case RouteNames.mainNavigation:
         return _page(const MainNavigationScreen());
       case RouteNames.dashboard:
@@ -143,20 +154,20 @@ class AppRoutes {
             ? goArgs
             : GoToRestaurantArgs(
                 orderId: goArgs is Map
-                    ? '${goArgs['orderId'] ?? '#YJK-...41'}'
-                    : '#YJK-...41',
+                    ? '${goArgs['orderId'] ?? ''}'
+                    : '',
                 restaurantName: goArgs is Map
-                    ? '${goArgs['restaurantName'] ?? 'The Green Kitchen'}'
-                    : 'The Green Kitchen',
+                    ? '${goArgs['restaurantName'] ?? ''}'
+                    : '',
                 pickupLocation: goArgs is Map
-                    ? '${goArgs['pickupLocation'] ?? 'Seef District'}'
-                    : 'Seef District',
+                    ? '${goArgs['pickupLocation'] ?? ''}'
+                    : '',
                 distance: goArgs is Map
-                    ? '${goArgs['distance'] ?? '1.1 km'}'
-                    : '1.1 km',
+                    ? '${goArgs['distance'] ?? ''}'
+                    : '',
                 estimatedTime: goArgs is Map
-                    ? '${goArgs['estimatedTime'] ?? '~5 min'}'
-                    : '~5 min',
+                    ? '${goArgs['estimatedTime'] ?? ''}'
+                    : '',
               );
         return MaterialPageRoute(
           builder: (context) => GoToRestaurantScreen(
@@ -174,11 +185,11 @@ class AppRoutes {
             ? confirmArgs
             : ConfirmPickupArgs(
                 orderId: confirmArgs is Map
-                    ? '${confirmArgs['orderId'] ?? '#YJK-...41'}'
-                    : '#YJK-...41',
+                    ? '${confirmArgs['orderId'] ?? ''}'
+                    : '',
                 restaurantName: confirmArgs is Map
-                    ? '${confirmArgs['restaurantName'] ?? 'The Green Kitchen'}'
-                    : 'The Green Kitchen',
+                    ? '${confirmArgs['restaurantName'] ?? ''}'
+                    : '',
               );
         return MaterialPageRoute(
           builder: (context) => ConfirmPickupScreen(
@@ -191,7 +202,7 @@ class AppRoutes {
           ),
         );
       case RouteNames.rejectOrder:
-        final rejectOrderId = settings.arguments as String? ?? '#YJK-...41';
+        final rejectOrderId = settings.arguments as String? ?? '';
         return MaterialPageRoute(
           builder: (context) => RejectScheduledOrderScreen(
             orderId: rejectOrderId,
@@ -213,7 +224,17 @@ class AppRoutes {
           ),
         );
       case RouteNames.deliverToCustomer:
-        return _page(const GoToCustomerScreen());
+        final jobId = settings.arguments as String? ?? '';
+        return MaterialPageRoute(
+          builder: (context) => DeliverToCustomerScreen(
+            jobId: jobId,
+            onBack: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        );
       case RouteNames.cashCompleteDelivery:
         return _page(const CashCompleteDeliveryScreen());
       case RouteNames.cashDeliveryCompleted:
@@ -356,7 +377,7 @@ class AppRoutes {
       case RouteNames.verifyHandover:
         return _page(VerifyHandoverScreen(args: _incidentArgs(settings)));
       case RouteNames.safetyHelp:
-        return _page(const SafetyHelpScreen());
+        return _page(SafetyHelpScreen(jobId: _safetyHelpJobId(settings)));
       case RouteNames.dispatchChat:
         return _page(const DispatchChatScreen());
       case RouteNames.dispatchCantReachChat:
@@ -384,8 +405,28 @@ class AppRoutes {
       case RouteNames.changeNumber:
         return _page(const ChangeNumberScreen());
       case RouteNames.verifyChangeNumber:
-        final phone = settings.arguments as String? ?? '+973 3300 0000';
-        return _page(VerifyChangeNumberScreen(phoneDisplay: phone));
+        final args = settings.arguments;
+        final VerifyChangeNumberArgs verifyArgs;
+        if (args is VerifyChangeNumberArgs) {
+          verifyArgs = args;
+        } else if (args is String) {
+          final digits = args.replaceAll(RegExp(r'\D'), '');
+          final phone = digits.startsWith('973') && digits.length > 8
+              ? digits.substring(3)
+              : digits;
+          verifyArgs = VerifyChangeNumberArgs(
+            phone: phone,
+            countryCode: '+973',
+            phoneDisplay: args,
+          );
+        } else {
+          verifyArgs = const VerifyChangeNumberArgs(
+            phone: '',
+            countryCode: '+973',
+            phoneDisplay: '',
+          );
+        }
+        return _page(VerifyChangeNumberScreen(args: verifyArgs));
       case RouteNames.editProfile:
         return _page(const EditProfileScreen());
       case RouteNames.vehicleInfo:
@@ -406,20 +447,36 @@ class AppRoutes {
     if (args is IncidentContextArgs) return args;
     if (args is Map) {
       return IncidentContextArgs(
-        orderId: '${args['orderId'] ?? '#YJK-…41'}',
+        orderId: '${args['orderId'] ?? ''}',
         vendorName:
-            '${args['vendorName'] ?? args['restaurantName'] ?? 'The Green Kitchen'}',
-        customerName: '${args['customerName'] ?? 'Sara A.'}',
-        area: '${args['area'] ?? 'Adliya'}',
-        address: '${args['address'] ?? 'Adliya · Bldg 23, Road 2825, Flat 82'}',
-        pin: '${args['pin'] ?? 'Pin: 26.2361, 50.5876'}',
+            '${args['vendorName'] ?? args['restaurantName'] ?? ''}',
+        customerName: '${args['customerName'] ?? ''}',
+        area: '${args['area'] ?? ''}',
+        address: '${args['address'] ?? ''}',
+        pin: '${args['pin'] ?? ''}',
       );
     }
     return const IncidentContextArgs();
   }
 
-  static MaterialPageRoute<dynamic> _page(Widget child) {
-    return MaterialPageRoute(builder: (_) => child);
+  static String? _safetyHelpJobId(RouteSettings settings) {
+    final args = settings.arguments;
+    if (args is String && args.trim().isNotEmpty) return args.trim();
+    if (args is Map) {
+      final jobId = args['jobId']?.toString().trim();
+      if (jobId != null && jobId.isNotEmpty) return jobId;
+    }
+    return null;
+  }
+
+  static MaterialPageRoute<dynamic> _page(
+    Widget child, {
+    RouteSettings? settings,
+  }) {
+    return MaterialPageRoute(
+      settings: settings,
+      builder: (_) => child,
+    );
   }
 
   static MaterialPageRoute<dynamic> _scheduledOrderPage(
@@ -456,7 +513,7 @@ class UnknownRouteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Page Not Found')),
+      appBar: AppBar(title: Text(L10n.tr('Page Not Found'))),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -464,7 +521,7 @@ class UnknownRouteScreen extends StatelessWidget {
             Icon(Icons.error_outline,
                 size: 64, color: AppColors.textLight.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
-            const Text('The page you are looking for does not exist.'),
+            Text(L10n.tr('The page you are looking for does not exist.')),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Navigator.pushNamedAndRemoveUntil(
@@ -472,7 +529,7 @@ class UnknownRouteScreen extends StatelessWidget {
                 RouteNames.mainNavigation,
                 (route) => false,
               ),
-              child: const Text('Go to Home'),
+              child: Text(L10n.tr('Go to Home')),
             ),
           ],
         ),

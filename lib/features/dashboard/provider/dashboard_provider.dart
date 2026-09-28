@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:yjeek_driver/features/dashboard/model/home_model.dart';
+import 'package:yjeek_driver/features/dashboard/model/ui_banner_model.dart';
 import 'package:yjeek_driver/features/dashboard/service/dashboard_service.dart';
+import 'package:yjeek_driver/l10n/l10n.dart';
 import 'package:yjeek_driver/services/api_service.dart';
 import 'package:yjeek_driver/services/location_service.dart';
 
@@ -16,19 +21,37 @@ class DashboardProvider extends ChangeNotifier {
 
   bool _isOnline = false;
   bool _isLoading = false;
+  bool _isUpdatingAutoAccept = false;
   String _currentLocation = 'Fetching location...';
   DriverHomeModel? _home;
   String? _error;
+  Timer? _locationHeartbeat;
+  bool _bannersLoading = false;
+  String? _bannersError;
+  HomeUiBannersModel? _homeBanners;
 
   bool get isOnline => _isOnline;
   bool get isLoading => _isLoading;
-  String get currentLocation => _currentLocation;
+  bool get isUpdatingAutoAccept => _isUpdatingAutoAccept;
+  String get currentLocation =>
+      _currentLocation == 'Fetching location...'
+          ? L10n.tr('Fetching location...')
+          : _currentLocation;
   DriverHomeModel? get home => _home;
   String? get error => _error;
+  bool get bannersLoading => _bannersLoading;
+  String? get bannersError => _bannersError;
 
-  String get driverName => _home?.driver.displayName ?? 'Driver';
+  List<UiBannerModel> bannersFor(String placementKey) =>
+      _homeBanners?.forPlacement(placementKey) ?? const [];
 
-  String get statusLabel => _isOnline ? "You're online" : 'Offline';
+  String get driverName {
+    final name = _home?.driver.displayName.trim() ?? '';
+    return name.isEmpty ? '—' : name;
+  }
+
+  String get statusLabel =>
+      _isOnline ? L10n.tr("You're online") : L10n.tr('Offline');
 
   int get tripsToday => _home?.today.ordersCount ?? 0;
 
@@ -43,8 +66,10 @@ class DashboardProvider extends ChangeNotifier {
 
   int get scheduledOrdersCount => _home?.scheduledOrdersCount ?? 0;
 
-  String get scheduledOrdersLabel =>
-      '$scheduledOrdersCount scheduled orders today';
+  String get scheduledOrdersLabel => L10n.trParams(
+        '{count} scheduled orders today',
+        {'count': '$scheduledOrdersCount'},
+      );
 
   int get unreadNotificationsCount => _home?.unreadNotificationsCount ?? 0;
 
@@ -54,14 +79,22 @@ class DashboardProvider extends ChangeNotifier {
 
   String get walletBalanceLabel => _formatBhd(walletBalance);
 
+  double get pendingCashCollected =>
+      _home?.wallet.pendingCashCollected ?? 0;
+
+  String get pendingCashCollectedLabel => _formatBhd(pendingCashCollected);
+
+  bool get hasOutstandingPodCash => pendingCashCollected > 0;
+
   bool get isAutoAcceptEnabled => _home?.driver.isAutoAcceptEnabled ?? false;
 
-  String get autoAcceptTitle =>
-      isAutoAcceptEnabled ? 'Auto-Accept is on' : 'Auto-Accept is off';
+  String get autoAcceptTitle => isAutoAcceptEnabled
+      ? L10n.tr('Auto-Accept is on')
+      : L10n.tr('Auto-Accept is off');
 
   String get autoAcceptSubtitle => isAutoAcceptEnabled
-      ? 'Orders will be accepted automatically'
-      : 'Turn it on to get orders automatically';
+      ? L10n.tr('Orders will be accepted automatically')
+      : L10n.tr('Turn it on to get orders automatically');
 
   // Kept for existing callers that used mock fields.
   int get completedOrders => tripsToday;
@@ -72,35 +105,150 @@ class DashboardProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    unawaited(_loadHomeBanners());
+
     try {
       final homeFuture = _dashboardService.getHome();
       final locationFuture = _locationService.getCurrentLocation();
       _home = await homeFuture;
       _currentLocation = await locationFuture;
       _isOnline = _home!.driver.isOnlineStatus;
+      _syncLocationHeartbeat();
     } on ApiException catch (e) {
       _error = e.message;
     } catch (_) {
-      _error = 'Failed to load home';
+      _error = L10n.tr('Failed to load home');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> toggleOnlineStatus() async {
-    if (_isOnline) {
-      await goOffline();
+  Future<void> loadHomeBanners() => _loadHomeBanners();
+
+  Future<void> _loadHomeBanners() async {
+    _bannersLoading = true;
+    _bannersError = null;
+    notifyListeners();
+
+    try {
+      _homeBanners = await _dashboardService.getHomeBanners();
+    } on ApiException catch (e) {
+      _bannersError = e.message;
+    } catch (_) {
+      _bannersError = L10n.tr('Failed to load banners');
+    } finally {
+      _bannersLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _syncLocationHeartbeat() {
+    if (!_isOnline) {
+      _locationHeartbeat?.cancel();
+      _locationHeartbeat = null;
       return;
     }
+    if (_locationHeartbeat != null) return;
+    _locationHeartbeat = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) => _pushCurrentLocation(),
+    );
+    _pushCurrentLocation();
+  }
 
-    // Go-online API is not wired yet; keep local toggle for now.
+  Future<void> _pushCurrentLocation() async {
+    if (!_isOnline) return;
+    if (ApiService.instance.accessToken == null ||
+        ApiService.instance.accessToken!.isEmpty) {
+      resetOnLogout();
+      return;
+    }
+    try {
+      final location = await _locationService.getCurrentMapLocation();
+      if (location == null) return;
+      await _dashboardService.updateLocation(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      );
+      _currentLocation =
+          '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}';
+    } catch (_) {
+      // Keep online session alive even if a single location ping fails.
+    }
+  }
+
+  Future<bool> toggleOnlineStatus() async {
+    if (_isOnline) {
+      return goOffline();
+    }
+
+    return goOnline();
+  }
+
+  Future<bool> goOnline() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
-    await Future.delayed(const Duration(milliseconds: 500));
-    _isOnline = true;
-    _isLoading = false;
-    notifyListeners();
+
+    try {
+      final serviceEnabled =
+          await _locationService.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw ApiException(
+          L10n.tr('Turn on Location Services, then try Go online again'),
+        );
+      }
+
+      var location = await _locationService.getCurrentMapLocation();
+      if (location == null) {
+        final permission = await _locationService.requestLocationPermission();
+        final granted = permission == ph.PermissionStatus.granted ||
+            permission == ph.PermissionStatus.limited ||
+            permission == ph.PermissionStatus.provisional;
+        if (!granted) {
+          throw ApiException(
+            permission == ph.PermissionStatus.permanentlyDenied
+                ? L10n.tr(
+                    'Location permission is required. Enable it in Settings.',
+                  )
+                : L10n.tr('Location permission is required to go online'),
+          );
+        }
+        location = await _locationService.getCurrentMapLocation();
+      }
+      if (location == null) {
+        throw ApiException(
+          L10n.tr(
+            'Could not get your GPS location. Try again outdoors or wait a moment.',
+          ),
+        );
+      }
+
+      final home = await _dashboardService.goOnline(
+        latitude: location.latitude,
+        longitude: location.longitude,
+      );
+      _home = home;
+      // Go-online API succeeded — show online UI even if status string differs.
+      _isOnline = true;
+      _currentLocation =
+          '${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)}';
+      _syncLocationHeartbeat();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _error = L10n.tr('Failed to go online');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> goOffline() async {
@@ -111,7 +259,8 @@ class DashboardProvider extends ChangeNotifier {
     try {
       final home = await _dashboardService.goOffline();
       _home = home;
-      _isOnline = home.driver.isOnlineStatus;
+      _isOnline = false;
+      _syncLocationHeartbeat();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -121,8 +270,40 @@ class DashboardProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (_) {
-      _error = 'Failed to go offline';
+      _error = L10n.tr('Failed to go offline');
       _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> setAutoAcceptEnabled(bool enabled) async {
+    if (_isUpdatingAutoAccept) return false;
+
+    _isUpdatingAutoAccept = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final isEnabled =
+          await _dashboardService.setAutoAccept(enabled: enabled);
+      final home = _home;
+      if (home != null) {
+        _home = home.copyWith(
+          driver: home.driver.copyWith(isAutoAcceptEnabled: isEnabled),
+        );
+      }
+      _isUpdatingAutoAccept = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _error = e.message;
+      _isUpdatingAutoAccept = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _error = L10n.tr('Failed to update auto-accept');
+      _isUpdatingAutoAccept = false;
       notifyListeners();
       return false;
     }
@@ -130,10 +311,28 @@ class DashboardProvider extends ChangeNotifier {
 
   void setOnline(bool value) {
     _isOnline = value;
+    _syncLocationHeartbeat();
     notifyListeners();
+  }
+
+  void resetOnLogout() {
+    _locationHeartbeat?.cancel();
+    _locationHeartbeat = null;
+    _isOnline = false;
+    _home = null;
+    _error = null;
+    _homeBanners = null;
+    _bannersError = null;
+    _bannersLoading = false;
   }
 
   String _formatBhd(double amount) {
     return 'BHD ${amount.toStringAsFixed(3)}';
+  }
+
+  @override
+  void dispose() {
+    _locationHeartbeat?.cancel();
+    super.dispose();
   }
 }

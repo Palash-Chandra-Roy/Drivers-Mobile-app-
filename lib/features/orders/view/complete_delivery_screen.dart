@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:yjeek_driver/core/utils/app_helpers.dart';
+import 'package:yjeek_driver/features/orders/model/job_detail_model.dart';
+import 'package:yjeek_driver/features/orders/order_flow_helpers.dart';
+import 'package:yjeek_driver/features/orders/provider/order_provider.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 class _CompleteDeliveryScale {
@@ -52,16 +57,16 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
   static const Color _uploadBg = Color(0xFFF5F5F5);
   static const Color _uploadBorder = Color(0xFFBDBDBD);
 
-  static const String _customerName = 'Sara A.';
-  static const String _orderId = '#YJK-...52';
-  static const String _itemCountLabel = '3 items';
-  static const String _paymentLabel = 'Prepaid · Yjeek Wallet';
+  static const String _fallbackCustomerName = '';
+  static const String _fallbackOrderId = '';
+  static const String _fallbackItemCountLabel = '—';
+  static const String _fallbackPaymentLabel = '—';
 
   bool _hasProofPhoto = false;
   Uint8List? _proofPhotoBytes;
   final ImagePicker _imagePicker = ImagePicker();
 
-  bool get _canComplete => _hasProofPhoto;
+  bool get _canComplete => _hasProofPhoto && _proofPhotoBytes != null;
 
   Future<void> _selectProofPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
@@ -124,8 +129,82 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     }
   }
 
-  void _completeDelivery() {
-    Navigator.pushNamed(context, RouteNames.deliveryCompleted);
+  Future<void> _completeDelivery() async {
+    if (!_canComplete) return;
+
+    final provider = context.read<OrderProvider>();
+    if (provider.isCompletingJob) return;
+
+    final job = provider.currentJobDetail;
+    final jobId = job?.id.trim() ?? '';
+    if (jobId.isEmpty) {
+      AppHelpers.showSnackBar(
+        context,
+        'No active job found to complete',
+        isError: true,
+      );
+      return;
+    }
+
+    final photoBytes = _proofPhotoBytes;
+    if (photoBytes == null) return;
+
+    final result = await provider.completeJob(
+      jobId: jobId,
+      deliveryPhotoBytes: photoBytes,
+      cashCollected: job?.requiresCashCollection ?? false,
+    );
+
+    if (!mounted) return;
+
+    if (result != null) {
+      AppHelpers.showSnackBar(context, result.message);
+      await navigateToJobSuccessScreen(
+        context,
+        provider: provider,
+        routeName: RouteNames.deliveryCompleted,
+        arguments: result,
+        refreshInstantBoard: true,
+      );
+      return;
+    }
+
+    AppHelpers.showSnackBar(
+      context,
+      provider.completeJobError ?? 'Failed to complete delivery',
+      isError: true,
+    );
+  }
+
+  String _customerLabel(JobDetailModel? job) {
+    final name = job?.order.customer.displayName.trim() ?? '';
+    return name.isNotEmpty ? name : _fallbackCustomerName;
+  }
+
+  String _orderLabel(JobDetailModel? job) {
+    final number = job?.order.displayOrderNumber.trim() ?? '';
+    return number.isNotEmpty ? number : _fallbackOrderId;
+  }
+
+  String _itemCountLabel(JobDetailModel? job) {
+    if (job == null) return _fallbackItemCountLabel;
+    final count = job.order.items.fold<int>(0, (sum, item) => sum + item.quantity);
+    if (count <= 0) return _fallbackItemCountLabel;
+    return count == 1 ? '1 item' : '$count items';
+  }
+
+  String _paymentLabel(JobDetailModel? job) {
+    if (job == null) return _fallbackPaymentLabel;
+    if (job.requiresCashCollection) {
+      return 'Cash on delivery';
+    }
+    final method = job.order.paymentMethod.replaceAll('_', ' ').trim();
+    if (method.isEmpty) return _fallbackPaymentLabel;
+    final status = job.order.paymentStatus.trim();
+    if (status.toUpperCase() == 'PAID') {
+      return 'Prepaid · $method';
+    }
+    return method;
   }
 
   @override
@@ -133,6 +212,9 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     _CompleteDeliveryScale.update(MediaQuery.sizeOf(context));
     final topInset = MediaQuery.paddingOf(context).top;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final provider = context.watch<OrderProvider>();
+    final job = provider.currentJobDetail;
+    final isCompleting = provider.isCompletingJob;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -153,7 +235,7 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
                 color: Colors.white,
                 child: SizedBox(height: topInset),
               ),
-              _buildHeader(),
+              _buildHeader(job),
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
@@ -163,11 +245,11 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
                     16.h + bottomInset,
                   ),
                   children: [
-                    _buildHandoverCard(),
+                    _buildHandoverCard(job),
                     SizedBox(height: 14.h),
                     _buildUploadArea(),
                     SizedBox(height: 20.h),
-                    _buildCompleteButton(),
+                    _buildCompleteButton(isCompleting: isCompleting),
                   ],
                 ),
               ),
@@ -178,7 +260,9 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(JobDetailModel? job) {
+    final subtitle = '${_customerLabel(job)} · ${_orderLabel(job)}';
+
     return Container(
       width: double.infinity,
       color: _headerGreen,
@@ -221,7 +305,7 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
                 ),
                 SizedBox(height: 3.h),
                 Text(
-                  '$_customerName · $_orderId',
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -234,30 +318,45 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
               ],
             ),
           ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.pushNamed(
+                context,
+                RouteNames.reportAtDropoff,
+                arguments: {
+                  'orderId': _orderLabel(job),
+                  'customerName': _customerLabel(job),
+                  'address': job?.order.address.navigationAddress ?? '',
+                },
+              ),
               borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  color: _reportText,
-                  size: 13.sp,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                SizedBox(width: 4.w),
-                Text(
-                  'Report',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _reportText,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.flag_outlined,
+                      color: _reportText,
+                      size: 13.sp,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      'Report',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _reportText,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -265,7 +364,7 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     );
   }
 
-  Widget _buildHandoverCard() {
+  Widget _buildHandoverCard(JobDetailModel? job) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
@@ -287,9 +386,13 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
             ),
           ),
           SizedBox(height: 14.h),
-          _buildDetailRow('Items', _itemCountLabel),
+          _buildDetailRow('Items', _itemCountLabel(job)),
           SizedBox(height: 10.h),
-          _buildDetailRow('Payment', _paymentLabel),
+          _buildDetailRow('Payment', _paymentLabel(job)),
+          if (job != null && job.order.hasTip) ...[
+            SizedBox(height: 10.h),
+            _buildDetailRow('Tip', job.order.tipAmountLabel),
+          ],
         ],
       ),
     );
@@ -430,9 +533,11 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
     );
   }
 
-  Widget _buildCompleteButton() {
+  Widget _buildCompleteButton({required bool isCompleting}) {
+    final enabled = _canComplete && !isCompleting;
+
     return Opacity(
-      opacity: _canComplete ? 1 : 0.45,
+      opacity: enabled || isCompleting ? 1 : 0.45,
       child: SizedBox(
         width: double.infinity,
         height: 52.h,
@@ -440,20 +545,29 @@ class _CompleteDeliveryScreenState extends State<CompleteDeliveryScreen> {
           color: _headerGreen,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
-            onTap: _completeDelivery,
+            onTap: enabled ? _completeDelivery : null,
             borderRadius: BorderRadius.circular(14),
             child: Center(
-              child: Text(
-                'Complete delivery',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _white,
-                  height: 1.2,
-                ),
-              ),
+              child: isCompleting
+                  ? SizedBox(
+                      width: 22.w,
+                      height: 22.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: _white,
+                      ),
+                    )
+                  : Text(
+                      'Complete delivery',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _white,
+                        height: 1.2,
+                      ),
+                    ),
             ),
           ),
         ),

@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:yjeek_driver/core/widgets/app_google_map.dart';
+import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
+import 'package:yjeek_driver/features/orders/model/job_offer_model.dart';
+import 'package:yjeek_driver/features/orders/provider/order_provider.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
@@ -56,12 +62,33 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
   static const Color _boltStroke = Color(0xFFFF9800);
 
   static const String _calendarIcon = 'assets/images/calendar_jul_17.png';
-  static const String _timerText = '0:30';
+  Timer? _countdownTicker;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdownTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<OrderProvider>().loadJobOffers();
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTicker?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     _NewRequestScreenScale.update(media.size);
+    final orders = context.watch<OrderProvider>();
+    final dashboard = context.watch<DashboardProvider>();
+    final offer = orders.currentOffer;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -75,45 +102,79 @@ class _NewRequestScreenState extends State<NewRequestScreen> {
         backgroundColor: _white,
         body: SafeArea(
           bottom: false,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double mapHeight = 374.h.clamp(300.0, 430.0).toDouble();
+          child: RefreshIndicator(
+            color: _green,
+            onRefresh: () => context.read<OrderProvider>().loadJobOffers(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double mapHeight = 374.h.clamp(300.0, 430.0).toDouble();
 
-              return SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 8.h),
-                      Center(
-                        child: SizedBox(
-                          width: 358.w,
-                          height: 50.h,
-                          child: _buildScheduledCard(context),
-                        ),
-                      ),
-                      SizedBox(
-                        height: mapHeight,
-                        width: double.infinity,
-                        child: const _RequestMapSection(),
-                      ),
-                      _RequestBottomSheet(
-                        bottomInset: media.padding.bottom,
-                        onAccept: () {
-                          Navigator.pushNamed(
-                            context,
-                            RouteNames.orderDeliveryNewRequest,
-                          );
-                        },
-                      ),
-                    ],
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: ClampingScrollPhysics(),
                   ),
-                ),
-              );
-            },
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 8.h),
+                        Center(
+                          child: SizedBox(
+                            width: 358.w,
+                            height: 50.h,
+                            child: _buildScheduledCard(context),
+                          ),
+                        ),
+                        SizedBox(
+                          height: mapHeight,
+                          width: double.infinity,
+                          child: const _RequestMapSection(),
+                        ),
+                        _RequestBottomSheet(
+                          bottomInset: media.padding.bottom,
+                          isLoading: orders.isLoadingOffers,
+                          error: orders.offersError,
+                          offer: offer,
+                          autoAcceptEnabled: dashboard.isAutoAcceptEnabled,
+                          onRetry: () =>
+                              context.read<OrderProvider>().loadJobOffers(),
+                          onAccept: offer == null
+                              ? null
+                              : () async {
+                                  final provider =
+                                      context.read<OrderProvider>();
+                                  final result =
+                                      await provider.acceptJob(offer.id);
+                                  if (!context.mounted) return;
+
+                                  if (result == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          provider.acceptJobError ??
+                                              'Failed to accept job',
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  Navigator.pushNamed(
+                                    context,
+                                    RouteNames.orderDeliveryNewRequest,
+                                  );
+                                },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -296,11 +357,21 @@ class _RequestMapSection extends StatelessWidget {
 class _RequestBottomSheet extends StatelessWidget {
   const _RequestBottomSheet({
     required this.bottomInset,
+    required this.isLoading,
+    required this.error,
+    required this.offer,
+    required this.autoAcceptEnabled,
+    required this.onRetry,
     required this.onAccept,
   });
 
   final double bottomInset;
-  final VoidCallback onAccept;
+  final bool isLoading;
+  final String? error;
+  final JobOfferModel? offer;
+  final bool autoAcceptEnabled;
+  final VoidCallback onRetry;
+  final VoidCallback? onAccept;
 
   @override
   Widget build(BuildContext context) {
@@ -326,68 +397,133 @@ class _RequestBottomSheet extends StatelessWidget {
               ),
             ),
             SizedBox(height: 13.h),
-            Center(
-              child: SizedBox(
-                width: 358.w,
-                height: 35.h,
-                child: const _AutoAcceptBanner(),
-              ),
-            ),
-            SizedBox(height: 20.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 18.w),
-              child: _RequestHeader(),
-            ),
-            SizedBox(height: 16.h),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 18.w),
-              child: const _PriceAndDistance(),
-            ),
-            SizedBox(height: 14.h),
-            Center(
-              child: SizedBox(
-                width: 358.w,
-                child: const _RouteInfoCard(),
-              ),
-            ),
-            SizedBox(height: 14.h),
-            Center(
-              child: SizedBox(
-                width: 358.w,
-                height: 52.h,
-                child: const _CashCard(),
-              ),
-            ),
-            SizedBox(height: 18.h),
-            Center(
-              child: SizedBox(
-                width: 358.w,
-                height: 40.h,
-                child: ElevatedButton(
-                  onPressed: onAccept,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _NewRequestScreenState._green,
-                    foregroundColor: _NewRequestScreenState._white,
-                    disabledBackgroundColor: _NewRequestScreenState._green,
-                    elevation: 0,
-                    shadowColor: _NewRequestScreenState._transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: const Text(
-                    'Accept now',
-                    style: TextStyle(
-                      color: _NewRequestScreenState._white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 36),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: _NewRequestScreenState._green,
+                    strokeWidth: 2.5,
                   ),
                 ),
+              )
+            else if (error != null && offer == null)
+              Padding(
+                padding: EdgeInsets.fromLTRB(18.w, 24, 18.w, 12),
+                child: Column(
+                  children: [
+                    Text(
+                      error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _NewRequestScreenState._textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: onRetry,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+            else if (offer == null)
+              Padding(
+                padding: EdgeInsets.fromLTRB(18.w, 28, 18.w, 20),
+                child: const Text(
+                  'Waiting for delivery requests…',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _NewRequestScreenState._textMuted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            else ...[
+              Builder(
+                builder: (context) {
+                  final activeOffer = offer!;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (autoAcceptEnabled)
+                        Center(
+                          child: SizedBox(
+                            width: 358.w,
+                            height: 35.h,
+                            child: _AutoAcceptBanner(
+                              timerText: activeOffer.timerLabel,
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: autoAcceptEnabled ? 20.h : 0),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 18.w),
+                        child: _RequestHeader(timerText: activeOffer.timerLabel),
+                      ),
+                      SizedBox(height: 16.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 18.w),
+                        child: _PriceAndDistance(offer: activeOffer),
+                      ),
+                      SizedBox(height: 14.h),
+                      Center(
+                        child: SizedBox(
+                          width: 358.w,
+                          child: _RouteInfoCard(offer: activeOffer),
+                        ),
+                      ),
+                      if (activeOffer.isCash) ...[
+                        SizedBox(height: 14.h),
+                        Center(
+                          child: SizedBox(
+                            width: 358.w,
+                            height: 52.h,
+                            child: _CashCard(
+                              collectLabel: activeOffer.cashCollectLabel,
+                            ),
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 18.h),
+                      Center(
+                        child: SizedBox(
+                          width: 358.w,
+                          height: 40.h,
+                          child: ElevatedButton(
+                            onPressed: onAccept,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _NewRequestScreenState._green,
+                              foregroundColor: _NewRequestScreenState._white,
+                              disabledBackgroundColor:
+                                  _NewRequestScreenState._green,
+                              elevation: 0,
+                              shadowColor: _NewRequestScreenState._transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: const Text(
+                              'Accept now',
+                              style: TextStyle(
+                                color: _NewRequestScreenState._white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -396,7 +532,9 @@ class _RequestBottomSheet extends StatelessWidget {
 }
 
 class _AutoAcceptBanner extends StatelessWidget {
-  const _AutoAcceptBanner();
+  const _AutoAcceptBanner({required this.timerText});
+
+  final String timerText;
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +544,7 @@ class _AutoAcceptBanner extends StatelessWidget {
         color: _NewRequestScreenState._greenBanner,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Row(
+      child: Row(
         children: [
           SizedBox(
             width: 16,
@@ -421,7 +559,7 @@ class _AutoAcceptBanner extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                'Auto-Accept ON · accepting automatically in 0:30',
+                'Auto-Accept ON - accepting automatically in $timerText',
                 maxLines: 1,
                 style: TextStyle(
                   color: _NewRequestScreenState._greenDark,
@@ -439,6 +577,10 @@ class _AutoAcceptBanner extends StatelessWidget {
 }
 
 class _RequestHeader extends StatelessWidget {
+  const _RequestHeader({required this.timerText});
+
+  final String timerText;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -463,18 +605,18 @@ class _RequestHeader extends StatelessWidget {
             color: _NewRequestScreenState._timerBg,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.access_time_rounded,
                 color: _NewRequestScreenState._orange,
                 size: 15,
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Text(
-                _NewRequestScreenState._timerText,
-                style: TextStyle(
+                timerText,
+                style: const TextStyle(
                   color: _NewRequestScreenState._orange,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
@@ -490,14 +632,16 @@ class _RequestHeader extends StatelessWidget {
 }
 
 class _PriceAndDistance extends StatelessWidget {
-  const _PriceAndDistance();
+  const _PriceAndDistance({required this.offer});
+
+  final JobOfferModel offer;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
+        Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -506,9 +650,9 @@ class _PriceAndDistance extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'BHD 2.300',
+                    offer.earningsLabel,
                     maxLines: 1,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: _NewRequestScreenState._greenDark,
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -517,39 +661,41 @@ class _PriceAndDistance extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 8),
-              Padding(
-                padding: EdgeInsets.only(bottom: 4),
-                child: Text(
-                  'incl. tip',
-                  style: TextStyle(
-                    color: _NewRequestScreenState._textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1,
+              if (offer.tipAmount > 0) ...[
+                const SizedBox(width: 8),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'incl. tip',
+                    style: TextStyle(
+                      color: _NewRequestScreenState._textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      height: 1,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
         const SizedBox(width: 10),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '4.2 km',
-              style: TextStyle(
+              offer.distanceLabel,
+              style: const TextStyle(
                 color: _NewRequestScreenState._textDark,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 height: 1,
               ),
             ),
-            SizedBox(height: 7),
+            const SizedBox(height: 7),
             Text(
-              '~18 min · Food',
-              style: TextStyle(
+              offer.etaCategoryLabel,
+              style: const TextStyle(
                 color: _NewRequestScreenState._textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -564,7 +710,9 @@ class _PriceAndDistance extends StatelessWidget {
 }
 
 class _RouteInfoCard extends StatelessWidget {
-  const _RouteInfoCard();
+  const _RouteInfoCard({required this.offer});
+
+  final JobOfferModel offer;
 
   @override
   Widget build(BuildContext context) {
@@ -583,52 +731,52 @@ class _RouteInfoCard extends StatelessWidget {
             child: const _RouteDots(),
           ),
           const SizedBox(width: 13),
-          const Expanded(
+          Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'The Green Kitchen',
+                  offer.vendorName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _NewRequestScreenState._textDark,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     height: 1,
                   ),
                 ),
-                SizedBox(height: 7),
+                const SizedBox(height: 7),
                 Text(
-                  'Pickup · Seef District',
+                  offer.pickupSubtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _NewRequestScreenState._textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     height: 1,
                   ),
                 ),
-                SizedBox(height: 13),
+                const SizedBox(height: 13),
                 Text(
-                  'Customer',
+                  offer.customerName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _NewRequestScreenState._textDark,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     height: 1,
                   ),
                 ),
-                SizedBox(height: 7),
+                const SizedBox(height: 7),
                 Text(
-                  'Drop-off · Adliya · 4.2 km',
+                  offer.dropoffSubtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _NewRequestScreenState._textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -694,7 +842,9 @@ class _Dot extends StatelessWidget {
 }
 
 class _CashCard extends StatelessWidget {
-  const _CashCard();
+  const _CashCard({required this.collectLabel});
+
+  final String collectLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -704,16 +854,16 @@ class _CashCard extends StatelessWidget {
         color: _NewRequestScreenState._cashCardBg,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          _CashIcon(),
-          SizedBox(width: 12),
+          const _CashIcon(),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Collect cash on delivery',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -724,12 +874,12 @@ class _CashCard extends StatelessWidget {
                     height: 1,
                   ),
                 ),
-                SizedBox(height: 5),
+                const SizedBox(height: 5),
                 Text(
-                  'Hand the order, collect BHD 8.500',
+                  collectLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: _NewRequestScreenState._orangeText,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

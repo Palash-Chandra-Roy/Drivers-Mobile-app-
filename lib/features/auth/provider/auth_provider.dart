@@ -5,10 +5,13 @@ import 'package:yjeek_driver/features/auth/model/send_otp_result.dart';
 import 'package:yjeek_driver/features/auth/model/verify_otp_result.dart';
 import 'package:yjeek_driver/features/auth/service/auth_service.dart';
 import 'package:yjeek_driver/services/api_service.dart';
+import 'package:yjeek_driver/services/push_notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  Future<void>? _restoreFuture;
+
   AuthProvider() {
-    _restoreSession();
+    _restoreFuture = _restoreSession();
   }
 
   final AuthService _authService = AuthService();
@@ -35,6 +38,9 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated =>
       _accessToken != null && _accessToken!.isNotEmpty && _user != null;
 
+  /// Ensures stored token/user are loaded (safe to call multiple times).
+  Future<void> restoreSession() => _restoreFuture ??= _restoreSession();
+
   Future<void> _restoreSession() async {
     await _authService.restoreSession();
     final storedUser = await _authService.loadStoredUser();
@@ -46,6 +52,7 @@ class AuthProvider extends ChangeNotifier {
     _accessToken = token;
     _refreshToken = await _authService.loadRefreshToken();
     notifyListeners();
+    PushNotificationService.instance.syncToken();
   }
 
   Future<SendOtpResult?> sendOtp({
@@ -135,6 +142,7 @@ class AuthProvider extends ChangeNotifier {
       _refreshToken = result.refreshToken;
       _isLoading = false;
       notifyListeners();
+      PushNotificationService.instance.syncToken();
       return result;
     } on AccountNotRegisteredException {
       _isLoading = false;
@@ -154,6 +162,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await PushNotificationService.instance.unregisterCurrentToken();
+    try {
+      await _authService.logoutAccount();
+    } catch (_) {
+      // Still clear local session so the user can leave the account.
+    }
     await _authService.clearSession();
     _driver = null;
     _user = null;
@@ -163,6 +177,33 @@ class AuthProvider extends ChangeNotifier {
     _countryCode = null;
     _expiresInSeconds = null;
     _error = null;
+    _restoreFuture = null;
+    notifyListeners();
+  }
+
+  Future<void> deleteAccount({String? reason}) async {
+    await PushNotificationService.instance.unregisterCurrentToken();
+    await _authService.deleteAccount(reason: reason);
+    await _authService.clearSession();
+    _driver = null;
+    _user = null;
+    _accessToken = null;
+    _refreshToken = null;
+    _phone = null;
+    _countryCode = null;
+    _expiresInSeconds = null;
+    _error = null;
+    _restoreFuture = null;
+    notifyListeners();
+  }
+
+  /// Updates in-memory tokens after account phone change (or similar flows).
+  void applyTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) {
+    _accessToken = accessToken;
+    _refreshToken = refreshToken;
     notifyListeners();
   }
 }

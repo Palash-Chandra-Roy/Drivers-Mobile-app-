@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:yjeek_driver/core/widgets/app_google_map.dart';
 import 'package:yjeek_driver/features/dashboard/provider/dashboard_provider.dart';
+import 'package:yjeek_driver/features/dashboard/view/home_cms_banner_slot.dart';
+import 'package:yjeek_driver/features/orders/provider/order_provider.dart';
+import 'package:yjeek_driver/features/settings/provider/settings_provider.dart';
+import 'package:yjeek_driver/l10n/l10n.dart';
 import 'package:yjeek_driver/navigation/orders_nav_signal.dart';
+import 'package:yjeek_driver/navigation/tab_refresh_signal.dart';
 import 'package:yjeek_driver/routes/route_names.dart';
 
 /// Home UI matched to Figma references.
@@ -47,18 +55,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const Color _onlineScheduledBorder = Color(0xFFE2E8E1);
   static const Color _onlineScheduledIconBg = Color(0xFFEAF9EF);
   static const Color _onlineStatBg = Color(0xFFF3F7F2);
+  static const double _homeMapHeight = 240;
+
+  Timer? _offerPollTimer;
+  String? _presentedOfferId;
+  bool _openingOffer = false;
+  bool? _offerPollingOnline;
 
   @override
   void initState() {
     super.initState();
+    TabRefreshSignal.ticks[TabRefreshSignal.home].addListener(_onTabRefresh);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardProvider>().loadDashboard();
     });
   }
 
   @override
+  void dispose() {
+    TabRefreshSignal.ticks[TabRefreshSignal.home].removeListener(_onTabRefresh);
+    _offerPollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onTabRefresh() {
+    if (!mounted) return;
+    context.read<DashboardProvider>().loadDashboard();
+    _pollIncomingOffers();
+  }
+
+  void _syncOfferPolling(bool online) {
+    if (!online) {
+      _offerPollTimer?.cancel();
+      _offerPollTimer = null;
+      _presentedOfferId = null;
+      return;
+    }
+    if (_offerPollTimer != null) return;
+    _offerPollTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _pollIncomingOffers(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _pollIncomingOffers();
+    });
+  }
+
+  Future<void> _pollIncomingOffers() async {
+    if (!mounted || _openingOffer) return;
+    final dashboard = context.read<DashboardProvider>();
+    if (!dashboard.isOnline) return;
+
+    final orders = context.read<OrderProvider>();
+    await orders.loadJobOffers();
+    if (!mounted) return;
+
+    final offer = orders.currentOffer;
+    if (offer == null) {
+      _presentedOfferId = null;
+      return;
+    }
+    if (_presentedOfferId == offer.id) return;
+
+    final routeName = ModalRoute.of(context)?.settings.name;
+    if (routeName == RouteNames.newRequest ||
+        routeName == RouteNames.orderDeliveryNewRequest) {
+      _presentedOfferId = offer.id;
+      return;
+    }
+
+    _presentedOfferId = offer.id;
+    _openingOffer = true;
+    try {
+      await Navigator.pushNamed(context, RouteNames.newRequest);
+    } finally {
+      _openingOffer = false;
+      // Allow re-present if still offered after closing.
+      if (mounted) _presentedOfferId = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    context.watch<SettingsProvider>();
     final dashboard = context.watch<DashboardProvider>();
+    _syncOfferPolling(dashboard.isOnline);
 
     if (dashboard.isOnline) {
       return _buildOnlineHome(context, dashboard);
@@ -73,119 +154,204 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: RefreshIndicator(
-            color: _buttonGreen,
-            onRefresh: () => context.read<DashboardProvider>().loadDashboard(),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Fit content to viewport — map absorbs remaining height.
-                const headerBlock = 52.0;
-                const bannerBlock = 60.0;
-                const bottomBlock = 248.0;
-                final mapHeight = (constraints.maxHeight -
-                        headerBlock -
-                        bannerBlock -
-                        bottomBlock)
-                    .clamp(200.0, 480.0);
-
-                return SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minHeight: constraints.maxHeight),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(context, dashboard),
-                        const SizedBox(height: 12),
-                        _buildScheduledBanner(context, dashboard),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: mapHeight,
-                          width: double.infinity,
-                          child: const AppGoogleMap(),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "You're offline",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  color: _textDark,
-                                  height: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Go online to start receiving delivery requests near you.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  color: _subtitleColor,
-                                  height: 1.35,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              _buildStatsRow(dashboard),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 52,
-                                child: ElevatedButton(
-                                  onPressed: dashboard.isLoading
-                                      ? null
-                                      : () async {
-                                          await context
-                                              .read<DashboardProvider>()
-                                              .toggleOnlineStatus();
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: _buttonGreen,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shadowColor: Colors.transparent,
-                                    disabledBackgroundColor:
-                                        _buttonGreen.withValues(alpha: 0.6),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.bolt_rounded,
-                                        color: Colors.white,
-                                        size: 22,
-                                      ),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'Go online',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, dashboard),
+                const SizedBox(height: 12),
+                const HomeCmsBannerSlot(
+                  placementKey: HomeCmsBannerSlot.top,
+                  showError: true,
+                ),
+                _buildScheduledBanner(context, dashboard),
+                _buildHomeMap(),
+                const HomeCmsBannerSlot(
+                  placementKey: HomeCmsBannerSlot.mid,
+                  height: HomeCmsBannerSlot.midHeight,
+                ),
+                Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      L10n.tr("You're offline"),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: _textDark,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      L10n.tr(
+                        'Go online to start receiving delivery requests near you.',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: _subtitleColor,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _buildStatsRow(dashboard),
+                    if (dashboard.hasOutstandingPodCash) ...[
+                      const SizedBox(height: 14),
+                      _buildPodCashWarning(dashboard),
+                    ],
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: dashboard.isLoading
+                            ? null
+                            : () => _onGoOnlinePressed(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _buttonGreen,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          disabledBackgroundColor:
+                              _buttonGreen.withValues(alpha: 0.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      ],
+                        child: dashboard.isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.bolt_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    L10n.tr('Go online'),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _onGoOnlinePressed(BuildContext context) async {
+    final provider = context.read<DashboardProvider>();
+    final ok = await provider.toggleOnlineStatus();
+    if (!context.mounted) return;
+    if (ok) return;
+
+    final message = provider.error ?? L10n.tr('Failed to go online');
+    if (_isPodReconcileBlock(message)) {
+      await _showPodReconcileDialog(context, provider, message);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  bool _isPodReconcileBlock(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('reconcile') ||
+        lower.contains('outstanding pod') ||
+        lower.contains('pod cash') ||
+        lower.contains('cod to settle');
+  }
+
+  Future<void> _showPodReconcileDialog(
+    BuildContext context,
+    DashboardProvider provider,
+    String message,
+  ) {
+    final amount = provider.hasOutstandingPodCash
+        ? provider.pendingCashCollectedLabel
+        : null;
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(L10n.tr("Can't go online")),
+        content: Text(
+          amount == null
+              ? '$message\n\n${L10n.tr('Hand over / settle collected POD cash with ops, then try again.')}'
+              : '$message\n\n${L10n.trParams('Outstanding POD cash: {amount} Settle this with ops, then try Go online again.', {
+                    'amount': amount,
+                  })}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(L10n.tr('OK')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPodCashWarning(DashboardProvider dashboard) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2D9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFD47D)),
+      ),
+      child: Text(
+        L10n.trParams(
+          'Outstanding POD cash: {amount}. Reconcile with ops before going online.',
+          {'amount': dashboard.pendingCashCollectedLabel},
+        ),
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF9A6A1E),
+          height: 1.35,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeMap() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: AppGoogleMap(
+        height: _homeMapHeight,
+        handleScrollGestures: true,
+        borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
     );
   }
@@ -204,43 +370,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: _onlineBg,
         body: SafeArea(
           bottom: false,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              const headerBlock = 68.0;
-              const autoAcceptBlock = 66.0;
-              const scheduledBlock = 48.0;
-              const summaryBlock = 200.0;
-              final mapHeight = (constraints.maxHeight -
-                      headerBlock -
-                      autoAcceptBlock -
-                      scheduledBlock -
-                      summaryBlock)
-                  .clamp(300.0, 410.0);
-
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildOnlineHeader(context, dashboard),
-                      const SizedBox(height: 18),
-                      _buildOnlineAutoAcceptCard(context, dashboard),
-                      const SizedBox(height: 10),
-                      _buildOnlineScheduledCard(context, dashboard),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: double.infinity,
-                        height: mapHeight,
-                        child: const AppGoogleMap(),
-                      ),
-                      _buildOnlineSummary(context, dashboard),
-                    ],
-                  ),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildOnlineHeader(context, dashboard),
+                const SizedBox(height: 12),
+                const HomeCmsBannerSlot(
+                  placementKey: HomeCmsBannerSlot.top,
+                  showError: true,
                 ),
-              );
-            },
+                _buildIncomingOfferCard(context),
+                _buildOnlineAutoAcceptCard(context, dashboard),
+                const SizedBox(height: 10),
+                _buildOnlineScheduledCard(context, dashboard),
+                _buildHomeMap(),
+                const HomeCmsBannerSlot(
+                  placementKey: HomeCmsBannerSlot.mid,
+                  height: HomeCmsBannerSlot.midHeight,
+                ),
+                _buildOnlineSummary(context, dashboard),
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
       ),
@@ -277,13 +430,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const _OnlinePill(
+                    _OnlinePill(
                       color: _onlineGreenPill,
                       horizontalPadding: 12,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 8,
                             height: 8,
                             child: DecoratedBox(
@@ -293,10 +446,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            "You're online",
-                            style: TextStyle(
+                            L10n.tr("You're online"),
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: _onlineGreenDark,
@@ -392,6 +545,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildIncomingOfferCard(BuildContext context) {
+    final offer = context.watch<OrderProvider>().currentOffer;
+    if (offer == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Material(
+        color: _onlineGreen,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, RouteNames.newRequest);
+          },
+          borderRadius: BorderRadius.circular(13),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(
+              children: [
+                const Icon(Icons.delivery_dining, color: Colors.white, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        L10n.tr('New delivery request'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.05,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        offer.vendorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                          height: 1.05,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  offer.timerLabel,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOnlineAutoAcceptCard(
     BuildContext context,
     DashboardProvider dashboard,
@@ -460,16 +677,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: _onlineEnableOrange,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
-                onTap: () =>
-                    Navigator.pushNamed(context, RouteNames.newRequest),
+                onTap: dashboard.isUpdatingAutoAccept
+                    ? null
+                    : () async {
+                        final ok = await context
+                            .read<DashboardProvider>()
+                            .setAutoAcceptEnabled(true);
+                        if (!context.mounted) return;
+                        final nowEnabled = context
+                            .read<DashboardProvider>()
+                            .isAutoAcceptEnabled;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok
+                                  ? L10n.tr('Auto-Accept enabled')
+                                  : (context
+                                          .read<DashboardProvider>()
+                                          .error ??
+                                      L10n.tr('Could not update Auto-Accept')),
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
                 borderRadius: BorderRadius.circular(16),
-                child: const SizedBox(
+                child: SizedBox(
                   width: 70,
                   height: 32,
                   child: Center(
                     child: Text(
-                      'Enable',
-                      style: TextStyle(
+                      L10n.tr('Enable'),
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color: _onlineBg,
@@ -542,9 +781,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'View',
-                  style: TextStyle(
+                Text(
+                  L10n.tr('View'),
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF5BC970),
@@ -574,14 +813,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: Text(
-                  "Today's summary",
+                  L10n.tr("Today's summary"),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: _onlineText,
@@ -590,8 +829,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               Text(
-                'Fri 12 Jun',
-                style: TextStyle(
+                DateFormat('EEE d MMM', L10n.code).format(DateTime.now()),
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: _onlineMuted,
@@ -613,7 +852,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: _onlineGreenDark,
                     ),
                     value: '${dashboard.tripsToday}',
-                    label: 'Orders',
+                    label: L10n.tr('Orders'),
                   ),
                 ),
               ),
@@ -629,7 +868,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: _onlineGreenDark,
                     ),
                     value: dashboard.todayEarningsLabel,
-                    label: 'Earnings',
+                    label: L10n.tr('Earnings'),
                   ),
                 ),
               ),
@@ -644,7 +883,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: _onlineGreenDark,
                     ),
                     value: dashboard.onlineDurationLabel,
-                    label: 'Online',
+                    label: L10n.tr('Online'),
                   ),
                 ),
               ),
@@ -658,9 +897,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: dashboard.isLoading
                   ? null
                   : () async {
-                      await context
-                          .read<DashboardProvider>()
-                          .toggleOnlineStatus();
+                      final provider = context.read<DashboardProvider>();
+                      final ok = await provider.toggleOnlineStatus();
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              provider.error ?? L10n.tr('Failed to go offline'),
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     },
               style: OutlinedButton.styleFrom(
                 backgroundColor: _onlineBg,
@@ -672,9 +921,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.circular(13),
                 ),
               ),
-              child: const Text(
-                'Go offline',
-                style: TextStyle(
+              child: Text(
+                L10n.tr('Go offline'),
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: _onlineGreenDark,
@@ -718,10 +967,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: _offlineChipBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 7,
                   height: 7,
                   child: DecoratedBox(
@@ -731,10 +980,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Offline',
-                  style: TextStyle(
+                  L10n.tr('Offline'),
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: _offlineText,
@@ -841,9 +1090,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ),
-                const Text(
-                  'View',
-                  style: TextStyle(
+                Text(
+                  L10n.tr('View'),
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: _viewGreen,
@@ -875,7 +1124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Color(0xFF4CAF50),
               ),
               value: '${dashboard.tripsToday}',
-              label: 'Trips today',
+              label: L10n.tr('Trips today'),
             ),
           ),
         ),
@@ -891,7 +1140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Color(0xFF4CAF50),
               ),
               value: dashboard.todayEarningsLabel,
-              label: 'Earnings',
+              label: L10n.tr('Earnings'),
             ),
           ),
         ),
@@ -906,7 +1155,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Color(0xFF4CAF50),
               ),
               value: dashboard.onlineDurationLabel,
-              label: 'Online',
+              label: L10n.tr('Online'),
             ),
           ),
         ),
